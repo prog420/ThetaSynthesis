@@ -1,29 +1,38 @@
 import networkx as nx
 import torch
+import torch.nn as nn
 import random as rnd
 import math as m
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
-from CIMtools.preprocessing import StandardizeChemAxon
+from CIMtools.preprocessing import StandardizeChemAxon, Fragmentor
 from sklearn.base import BaseEstimator
 
 c_puct = 4
 
-"""
-1 - Интересующее соединение, описывается фрагментными дескрипторами ISIDA. 
-2 - Далее искусственной нейронной сетью предсказывается вероятность применения правил, по
-которому можно получить целевое соединение. 
-3 - КГР реакционного правила накладывается на соединение и генерируются реагенты, с помощью которых можно получить
-интересующее соединение
-"""
+model = nn.Sequential(
+    nn.Linear(2006, 4000),
+    nn.ReLU(inplace=True),
+    nn.Linear(4000, 2272),
+    nn.Sigmoid()
+)
+model.load_state_dict(torch.load('model/model_dict.pth'))
+model.eval()
 
 
 class MCTS:
-    def __init__(self, tree):
+    def __init__(self, tree, model):
         self._tree = tree
+        self._model = model
+        self._fr = Fragmentor()
 
-    def nn(self):
-        ...
+    def predict(self, mol_container):
+        descriptor = self._fr.transform(mol_container).values
+        return self._model(descriptor), 1
+
+    @staticmethod
+    def filter(reaction):
+        return True
 
     def puct(self, node):
         global c_puct
@@ -54,9 +63,9 @@ class MCTS:
 
     def expand_and_evaluate(self, node):
         reagent = self._tree.nodes[node]['reagents']
-        rules = self.nn(reagent)
+        rules, value = self.predict(reagent)
         for rule in rules:
-            reactor = CGRReactor(rules)
+            reactor = CGRReactor(rule)
             products = reactor(reagent)
             for product in products:
                 self._tree.add_node(len(self._tree.nodes), reagents=product)
@@ -73,9 +82,8 @@ class MCTS:
             node = parent[0]
             parent = list(self._tree.predecessors(node))
 
-    def play(self):
+    def train(self):
         ...
 
-
-def prepare(mol_container):
-    return fr.transform(mol_container).values
+    def play(self):
+        ...
