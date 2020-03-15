@@ -1,14 +1,18 @@
-import networkx as nx
-import torch
-import torch.nn as nn
-import random as rnd
-import math as m
+from CIMtools.preprocessing import StandardizeChemAxon, Fragmentor
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
-from CIMtools.preprocessing import StandardizeChemAxon, Fragmentor
-from sklearn.base import BaseEstimator
+import math as m
+import networkx as nx
+import os
+import pickle
+import torch
+import torch.nn as nn
 
 c_puct = 4
+os.environ["PATH"] = '/opt/fragmentor'
+path_to_fragmentor = ''
+frag = pickle.load(path_to_fragmentor)
+stand = StandardizeChemAxon()
 
 model = nn.Sequential(
     nn.Linear(2006, 4000),
@@ -21,14 +25,14 @@ model.eval()
 
 
 class MCTS:
-    def __init__(self, tree, model):
-        self._tree = tree
-        self._model = model
-        self._fr = Fragmentor()
+    def __init__(self, target):
+        self._target = stand.transform(SDFRead(target))
+        self._tree = nx.DiGraph()
 
-    def predict(self, mol_container):
-        descriptor = self._fr.transform(mol_container).values
-        return self._model(descriptor), 1
+    @staticmethod
+    def predict(mol_container):
+        descriptor = frag.transform(mol_container).values
+        return model(descriptor), 1
 
     @staticmethod
     def filter(reaction):
