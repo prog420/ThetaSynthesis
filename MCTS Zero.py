@@ -25,9 +25,10 @@ model.eval()
 
 
 class MCTS:
-    def __init__(self, target):
+    def __init__(self, target, stop: dict):
         self._target = stand.transform(SDFRead(target))
         self._tree = nx.DiGraph()
+        self._step_count, self._depth.count, self._terminal_count = stop.values()
 
     @staticmethod
     def predict(mol_container):
@@ -90,4 +91,15 @@ class MCTS:
         ...
 
     def play(self):
-        ...
+        for _ in range(self._step_count):
+            node = self.select()
+            value = self.expand_and_evaluate(node)
+            self.backup(node, value)
+        children = list(self._tree.successors(self._target))
+        dict_with_children = {node: self._tree[node][]}
+        for child_node in children:
+            if self.puct(child_node) > maximum:
+                node = child_node
+                maximum = self.puct(child_node)
+
+
