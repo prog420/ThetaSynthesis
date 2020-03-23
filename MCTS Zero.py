@@ -1,6 +1,7 @@
 from CIMtools.preprocessing import StandardizeChemAxon, Fragmentor
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
+from sklearn.base import BaseEstimator
 import math as m
 import networkx as nx
 import os
@@ -24,16 +25,35 @@ model.load_state_dict(torch.load('model/model_dict.pth'))
 model.eval()
 
 
+class Estimator(BaseEstimator):
+    def __init__(self):
+        ...
+
+    def fit(self):
+        ...
+
+    def predict(self):
+        ...
+
+
+
 class MCTS:
     def __init__(self, target, stop: dict):
         self._target = stand.transform(SDFRead(target))
         self._tree = nx.DiGraph()
-        self._step_count, self._depth.count, self._terminal_count = stop.values()
+        self._step_count, self._depth_count, self._terminal_count = stop.values()
 
     @staticmethod
     def predict(mol_container):
         descriptor = frag.transform(mol_container).values
-        return model(descriptor), 1
+        descriptor = torch.FloatTensor(descriptor)
+        y = model(descriptor)
+        list_rules = [x[0]
+                      for x
+                      in sorted(zip(range(1, len(y) + 1), y), key=lambda y: y[1], reverse=True)
+                      if x[1].item() >= 0.5
+                      ]
+        return list_rules, 1
 
     @staticmethod
     def filter(reaction):
@@ -96,10 +116,9 @@ class MCTS:
             value = self.expand_and_evaluate(node)
             self.backup(node, value)
         children = list(self._tree.successors(self._target))
-        dict_with_children = {node: self._tree[node][]}
+        dict_with_children = {node: self._tree[node]['reagents']}
         for child_node in children:
             if self.puct(child_node) > maximum:
                 node = child_node
                 maximum = self.puct(child_node)
-
 
