@@ -1,19 +1,15 @@
-from CIMtools.preprocessing import StandardizeChemAxon, Fragmentor
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
 from sklearn.base import BaseEstimator
 import math as m
 import networkx as nx
-import os
 import pickle
 import torch
 import torch.nn as nn
 
 c_puct = 4
-os.environ["PATH"] = '/opt/fragmentor'
-path_to_fragmentor = ''
+path_to_fragmentor = './source files/fitted_fragmentor.pickle'
 frag = pickle.load(path_to_fragmentor)
-stand = StandardizeChemAxon()
 
 model = nn.Sequential(
     nn.Linear(2006, 4000),
@@ -21,7 +17,7 @@ model = nn.Sequential(
     nn.Linear(4000, 2272),
     nn.Sigmoid()
 )
-model.load_state_dict(torch.load('model/model_dict.pth'))
+model.load_state_dict(torch.load('./source files/full_model.pth'))
 model.eval()
 
 
@@ -36,17 +32,16 @@ class Estimator(BaseEstimator):
         ...
 
 
-
 class MCTS:
     def __init__(self, target, stop: dict):
-        self._target = stand.transform(SDFRead(target))
+        self._target = SDFRead(target)
         self._tree = nx.DiGraph()
+        self._tree.add_node(1, depth=0)
         self._step_count, self._depth_count, self._terminal_count = stop.values()
 
     @staticmethod
     def predict(mol_container):
-        descriptor = frag.transform(mol_container).values
-        descriptor = torch.FloatTensor(descriptor)
+        descriptor = torch.FloatTensor(frag.transform([mol_container]).values)
         y = model(descriptor)
         list_rules = [x[0]
                       for x
@@ -113,12 +108,10 @@ class MCTS:
     def play(self):
         for _ in range(self._step_count):
             node = self.select()
+            if nx.shortest_path_length(self._tree, 1, node) == self._depth_count:
+                break
             value = self.expand_and_evaluate(node)
             self.backup(node, value)
-        children = list(self._tree.successors(self._target))
-        dict_with_children = {node: self._tree[node]['reagents']}
-        for child_node in children:
-            if self.puct(child_node) > maximum:
-                node = child_node
-                maximum = self.puct(child_node)
+        children = [self._tree.successors(1)]
+        return {x: }
 
