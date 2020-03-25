@@ -6,7 +6,6 @@ import math as m
 import networkx as nx
 import pickle
 import torch
-import torch.nn as nn
 
 c_puct = 4
 with open('./source files/fitted_fragmentor.pickle', 'rb') as f:
@@ -33,19 +32,19 @@ class MCTS:
     def __init__(self, target, stop: dict):
         self._target = target
         self._tree = nx.DiGraph()
-        self._tree.add_node(1, depth=0, reagents=target, mean_action=0, visit_count=0, total_action=0,
+        self._tree.add_node(1, depth=0, reactants=target, mean_action=0, visit_count=0, total_action=0,
                             probability=1)
-        self._step_count, self._depth_count, self._terminal_count = stop.values()
+        self._step_count, self._depth_count, self._node_child_count, self._terminal_count = stop.values()
 
     @staticmethod
     def predict(mol_container):
         descriptor = torch.FloatTensor(frag.transform([mol_container]).values)
         y = model(descriptor)
-        list_rules = [x[0]
+        list_rules = [x
                       for x in sorted(zip(range(1, len(y[0])), [i.item() for i in y[0]]), key=lambda x: x[1], reverse=True)
-                      if x[1] >= 0.5
+                      if x[1] >= 0.95
                       ]
-        list_rules = [rules[x] for x in list_rules]
+        list_rules = [(rules[x], y) for x, y in list_rules]
         return list_rules, 1
 
     @staticmethod
@@ -80,13 +79,21 @@ class MCTS:
         return node
 
     def expand_and_evaluate(self, node):
-        reagent = self._tree.nodes[node]['reagents']
-        rules, value = self.predict(reagent)
-        for rule in rules:
+        reactant = self._tree.nodes[node]['reactants']
+        rules, value = self.predict(reactant)
+        child_count = 0
+        for pair in rules:
+            if child_count >= self._node_child_count:
+                break
+            rule, probability = pair
             reactor = CGRReactor(rule)
-            products = reactor(reagent)
+            products = reactor(reactant)
             for product in products:
-                self._tree.add_node(len(self._tree.nodes), reagents=product, rule=rule)
+                new_node = len(self._tree.nodes) + 1
+                self._tree.add_edge(node, new_node, rule=rule)
+                self._tree.add_node(new_node, reactants=product, mean_action=0, visit_count=0, total_action=0,
+                                    depth=nx.shortest_path_length(self._tree, 1, node),
+                                    probability=probability)
         return value
 
     def backup(self, node, value):
@@ -95,8 +102,7 @@ class MCTS:
             visit_count = self._tree.nodes[node]['visit_count'] + 1
             total_action = self._tree.nodes[node]['total_action'] + value
             mean_action = total_action / visit_count
-            self._tree.add_node(node, visit_count=visit_count, total_action=total_action, mean_action=mean_action,
-                                depth=nx.shortest_path_length(self._tree, 1, node))
+            self._tree.add_node(node, visit_count=visit_count, total_action=total_action, mean_action=mean_action)
             node = parent[0]
             parent = list(self._tree.predecessors(node))
 
@@ -110,7 +116,7 @@ class MCTS:
                 break
             value = self.expand_and_evaluate(node)
             self.backup(node, value)
-        children = sorted([self._tree.successors(1)], key=lambda x: self.puct(self._tree.nodes[x]), reverse=True)
+        children = sorted(list(self._tree.successors(1)), key=lambda x: self._tree.nodes[x]['mean_action'], reverse=True)
         return children[0]
 
 
@@ -121,8 +127,8 @@ with SDFRead('./source files/TestSetNew.sdf', 'r') as file:
 
 target = choice(targets)
 path = [target]
-for _ in range(5):
-    tree = MCTS(target, {'step_count': 2000, 'depth_count': 10, 'terminal_count': 10})
+for _ in range(3):
+    tree = MCTS(target, {'step_count': 100, 'depth_count': 10, 'node_child_count': 5, 'terminal_count': 10})
     target = tree.play()
     path.append(target)
 
