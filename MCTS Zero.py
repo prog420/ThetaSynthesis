@@ -1,5 +1,6 @@
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
+from random import choice, sample
 from sklearn.base import BaseEstimator
 import math as m
 import networkx as nx
@@ -10,6 +11,7 @@ import torch.nn as nn
 c_puct = 4
 path_to_fragmentor = './source files/fitted_fragmentor.pickle'
 frag = pickle.load(path_to_fragmentor)
+rules = pickle.load('./source files/rules_reverse.pickle')
 
 model = nn.Sequential(
     nn.Linear(2006, 4000),
@@ -112,6 +114,20 @@ class MCTS:
                 break
             value = self.expand_and_evaluate(node)
             self.backup(node, value)
-        children = [self._tree.successors(1)]
-        return {x: }
+        children = sorted([self._tree.successors(1)], key=lambda x: self.puct(self._tree.nodes[x]), reverse=True)
+        return children[0]
 
+
+with SDFRead('./source files/TestSetNew.sdf', 'r') as file:
+    test = file.read()
+    targets = sample(test, 8)
+    del test
+
+target = choice(targets)
+path = [target]
+for _ in range(5):
+    tree = MCTS(target, {'step_count': 100, 'depth_count': 10, 'terminal_count': 100})
+    target = tree.play()
+    path.append(target)
+
+pickle.dump(path, 'result.pickle')
