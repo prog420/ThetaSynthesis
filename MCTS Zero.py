@@ -9,17 +9,12 @@ import torch
 import torch.nn as nn
 
 c_puct = 4
-path_to_fragmentor = './source files/fitted_fragmentor.pickle'
-frag = pickle.load(path_to_fragmentor)
-rules = pickle.load('./source files/rules_reverse.pickle')
+with open('./source files/fitted_fragmentor.pickle', 'rb') as f:
+    frag = pickle.load(f)
+with open('./source files/rules_reverse.pickle', 'rb') as f:
+    rules = pickle.load(f)
 
-model = nn.Sequential(
-    nn.Linear(2006, 4000),
-    nn.ReLU(inplace=True),
-    nn.Linear(4000, 2272),
-    nn.Sigmoid()
-)
-model.load_state_dict(torch.load('./source files/full_model.pth'))
+model = torch.load('./source files/full_model.pth')
 model.eval()
 
 
@@ -36,9 +31,10 @@ class Estimator(BaseEstimator):
 
 class MCTS:
     def __init__(self, target, stop: dict):
-        self._target = SDFRead(target)
+        self._target = target
         self._tree = nx.DiGraph()
-        self._tree.add_node(1, depth=0)
+        self._tree.add_node(1, depth=0, reagents=target, mean_action=0, visit_count=0, total_action=0,
+                            probability=1)
         self._step_count, self._depth_count, self._terminal_count = stop.values()
 
     @staticmethod
@@ -46,10 +42,10 @@ class MCTS:
         descriptor = torch.FloatTensor(frag.transform([mol_container]).values)
         y = model(descriptor)
         list_rules = [x[0]
-                      for x
-                      in sorted(zip(range(1, len(y) + 1), y), key=lambda y: y[1], reverse=True)
-                      if x[1].item() >= 0.5
+                      for x in sorted(zip(range(1, len(y[0])), [i.item() for i in y[0]]), key=lambda x: x[1], reverse=True)
+                      if x[1] >= 0.5
                       ]
+        list_rules = [rules[x] for x in list_rules]
         return list_rules, 1
 
     @staticmethod
@@ -90,7 +86,7 @@ class MCTS:
             reactor = CGRReactor(rule)
             products = reactor(reagent)
             for product in products:
-                self._tree.add_node(len(self._tree.nodes), reagents=product)
+                self._tree.add_node(len(self._tree.nodes), reagents=product, rule=rule)
         return value
 
     def backup(self, node, value):
@@ -126,7 +122,7 @@ with SDFRead('./source files/TestSetNew.sdf', 'r') as file:
 target = choice(targets)
 path = [target]
 for _ in range(5):
-    tree = MCTS(target, {'step_count': 100, 'depth_count': 10, 'terminal_count': 100})
+    tree = MCTS(target, {'step_count': 2000, 'depth_count': 10, 'terminal_count': 10})
     target = tree.play()
     path.append(target)
 
