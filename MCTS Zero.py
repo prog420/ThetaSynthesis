@@ -32,9 +32,9 @@ class MCTS:
     def __init__(self, target, stop: dict):
         self._target = target
         self._tree = nx.DiGraph()
-        self._tree.add_node(1, depth=0, reactants=target, mean_action=0, visit_count=0, total_action=0,
+        self._tree.add_node(1, depth=0, queue=[target], mean_action=0, visit_count=0, total_action=0,
                             probability=1)
-        self._step_count, self._depth_count, self._node_child_count, self._terminal_count = stop.values()
+        self._step_count, self._depth_count, self._terminal_count = stop.values()
 
     @staticmethod
     def predict(mol_container):
@@ -45,7 +45,7 @@ class MCTS:
                       if x[1] >= 0.95
                       ]
         list_rules = [(rules[x], y) for x, y in list_rules]
-        return list_rules, 1
+        return list_rules, choice(-1, 0, 1)
 
     @staticmethod
     def filter(reaction):
@@ -79,21 +79,17 @@ class MCTS:
         return node
 
     def expand_and_evaluate(self, node):
-        reactant = self._tree.nodes[node]['reactants']
+        reactant = self._tree.nodes[node]['queue'].pop([0])
         rules, value = self.predict(reactant)
-        child_count = 0
         for pair in rules:
-            if child_count >= self._node_child_count:
-                break
             rule, probability = pair
             reactor = CGRReactor(rule)
             products = reactor(reactant)
-            for product in products:
-                new_node = len(self._tree.nodes) + 1
-                self._tree.add_edge(node, new_node, rule=rule)
-                self._tree.add_node(new_node, reactants=product, mean_action=0, visit_count=0, total_action=0,
-                                    depth=nx.shortest_path_length(self._tree, 1, node),
-                                    probability=probability)
+            queue = self._tree.nodes[node]['queue'] + products
+            self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule)
+            self._tree.add_node(len(self._tree.nodes) + 1, queue=queue, mean_action=0, visit_count=0, total_action=0,
+                                depth=nx.shortest_path_length(self._tree, 1, node),
+                                probability=probability)
         return value
 
     def backup(self, node, value):
@@ -114,8 +110,7 @@ class MCTS:
             node = self.select()
             if nx.shortest_path_length(self._tree, 1, node) == self._depth_count:
                 break
-            value = self.expand_and_evaluate(node)
-            self.backup(node, value)
+            self.backup(node, self.expand_and_evaluate(node))
         children = sorted(list(self._tree.successors(1)), key=lambda x: self._tree.nodes[x]['mean_action'], reverse=True)
         return children[0]
 
@@ -127,8 +122,8 @@ with SDFRead('./source files/TestSetNew.sdf', 'r') as file:
 
 target = choice(targets)
 path = [target]
+tree = MCTS(target, {'step_count': 1000, 'depth_count': 10, 'terminal_count': 10})
 for _ in range(3):
-    tree = MCTS(target, {'step_count': 100, 'depth_count': 10, 'node_child_count': 5, 'terminal_count': 10})
     target = tree.play()
     path.append(target)
 
