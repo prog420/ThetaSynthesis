@@ -1,7 +1,7 @@
+from available_compounds_filter import available
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
-from random import choice, sample
-from sklearn.base import BaseEstimator
+from random import choice
 import math as m
 import networkx as nx
 import pickle
@@ -15,17 +15,6 @@ with open('./source files/rules_reverse.pickle', 'rb') as f:
 
 model = torch.load('./source files/full_model.pth')
 model.eval()
-
-
-class Estimator(BaseEstimator):
-    def __init__(self):
-        ...
-
-    def fit(self):
-        ...
-
-    def predict(self):
-        ...
 
 
 class MCTS:
@@ -89,7 +78,7 @@ class MCTS:
             rule, probability = pair
             reactor = CGRReactor(rule)
             products = reactor(reactant)
-            queue = self._tree.nodes[node]['queue'] + products
+            queue = self._tree.nodes[node]['queue'] + available(products)
             self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule)
             self._tree.add_node(len(self._tree.nodes) + 1, queue=queue, mean_action=0, visit_count=0, total_action=0,
                                 depth=nx.shortest_path_length(self._tree, 1, node),
