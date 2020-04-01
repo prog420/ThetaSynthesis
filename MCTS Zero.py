@@ -29,12 +29,16 @@ class Estimator(BaseEstimator):
 
 
 class MCTS:
-    def __init__(self, target, stop: dict):
+    def __init__(self, target):
         self._target = target
         self._tree = nx.DiGraph()
         self._tree.add_node(1, depth=0, queue=[target], mean_action=0, visit_count=0, total_action=0,
                             probability=1)
-        self._step_count, self._depth_count, self._terminal_count = stop.values()
+        self._terminal_nodes = []
+
+    @property
+    def terminal_nodes(self):
+        return self._terminal_nodes
 
     @staticmethod
     def predict(mol_container):
@@ -102,29 +106,36 @@ class MCTS:
             node = parent[0]
             parent = list(self._tree.predecessors(node))
 
-    def train(self):
-        ...
-
-    def play(self):
-        for _ in range(self._step_count):
+    def emulate(self, stop: dict):
+        step_count, depth_count, terminal_count = stop.values()
+        for _ in range(step_count):
             node = self.select()
-            if nx.shortest_path_length(self._tree, 1, node) == self._depth_count:
+            if nx.shortest_path_length(self._tree, 1, node) == depth_count:
                 break
             self.backup(node, self.expand_and_evaluate(node))
-        children = sorted(list(self._tree.successors(1)), key=lambda x: self._tree.nodes[x]['mean_action'], reverse=True)
-        return children[0]
+            self._terminal_nodes = [node for node in self._tree.nodes if not self._tree.nodes[node]['queue']]
+            if len(self._terminal_nodes) >= terminal_count:
+                break
+            return self.terminal_nodes
+
+    def train(self, win_lose: dict = None):
+        win_count, lose_count, flag = win_lose.values()
+
+    def find(self, stop: dict, terminal_nodes):
+        paths = [nx.shortest_path(self._tree, 1, node) for node in terminal_nodes]
+        for path in paths:
+            lst = list(zip(path, path[1:]))
+            yield lst
 
 
-with SDFRead('./source files/TestSetNew.sdf', 'r') as file:
-    test = file.read()
-    targets = sample(test, 8)
-    del test
+with SDFRead('./source files/targets', 'r') as file:
+    targets = file.read()
 
 target = choice(targets)
 path = [target]
-tree = MCTS(target, {'step_count': 1000, 'depth_count': 10, 'terminal_count': 10})
+tree = MCTS(target)
 for _ in range(3):
-    target = tree.play()
+    target = tree.find({'step_count': 1000, 'depth_count': 10, 'terminal_count': 10}, tree.emulate)
     path.append(target)
 
 pickle.dump(path, 'result.pickle')
