@@ -1,4 +1,5 @@
-from available_compounds_filter import available
+from available_compounds_filter import not_available
+from CGRtools.containers import ReactionContainer
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
 from random import choice
@@ -18,19 +19,20 @@ model.eval()
 
 
 class MCTS:
-    def __init__(self, target):
+    def __init__(self, target, stop):
         self._target = target
         self._tree = nx.DiGraph()
         self._tree.add_node(1, depth=0, queue=[target], mean_action=0, visit_count=0, total_action=0,
-                            probability=1)
+                            probability=1.)
         self._terminal_nodes = []
+        self._stop = stop
 
     @property
     def terminal_nodes(self):
         return self._terminal_nodes
 
     @staticmethod
-    def predict(mol_container):
+    def nn(mol_container):
         descriptor = torch.FloatTensor(frag.transform([mol_container]).values)
         y = model(descriptor)
         list_rules = [x
@@ -38,7 +40,7 @@ class MCTS:
                       if x[1] >= 0.95
                       ]
         list_rules = [(rules[x], y) for x, y in list_rules]
-        return list_rules, choice(-1, 0, 1)
+        return list_rules, choice([-1, 0, 1])
 
     @staticmethod
     def filter(reaction):
@@ -72,15 +74,18 @@ class MCTS:
         return node
 
     def expand_and_evaluate(self, node):
-        reactant = self._tree.nodes[node]['queue'].pop([0])
-        rules, value = self.predict(reactant)
+        reactant = self._tree.nodes[node]['queue'].pop(0)
+        rules, value = self.nn(reactant)
         for pair in rules:
             rule, probability = pair
             reactor = CGRReactor(rule)
-            products = reactor(reactant)
-            queue = self._tree.nodes[node]['queue'] + available(products)
-            self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule)
-            self._tree.add_node(len(self._tree.nodes) + 1, queue=queue, mean_action=0, visit_count=0, total_action=0,
+            products = not_available(reactor(reactant))
+            if not products:
+                continue
+            queue = self._tree.nodes[node]['queue'] + products
+            self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule,
+                                reaction=ReactionContainer([reactant], [*products]))
+            self._tree.add_node(len(self._tree.nodes), queue=queue, mean_action=0, visit_count=0, total_action=0,
                                 depth=nx.shortest_path_length(self._tree, 1, node),
                                 probability=probability)
         return value
@@ -95,36 +100,48 @@ class MCTS:
             node = parent[0]
             parent = list(self._tree.predecessors(node))
 
-    def emulate(self, stop: dict):
-        step_count, depth_count, terminal_count = stop.values()
+    def emulate(self):
+        step_count, depth_count, terminal_count = self._stop.values()
         for _ in range(step_count):
             node = self.select()
-            if nx.shortest_path_length(self._tree, 1, node) == depth_count:
+            if nx.shortest_path_length(self._tree, 1, node) > depth_count:
                 break
             self.backup(node, self.expand_and_evaluate(node))
-            self._terminal_nodes = [node for node in self._tree.nodes if not self._tree.nodes[node]['queue']]
+            self._terminal_nodes = [node
+                                    for node
+                                    in self._tree.nodes
+                                    if (not self._tree.nodes[node]['queue']) and (node != 1)
+                                    ]
             if len(self._terminal_nodes) >= terminal_count:
                 break
-            return self.terminal_nodes
 
     def train(self, win_lose: dict = None):
-        win_count, lose_count, flag = win_lose.values()
+        ...
 
-    def find(self, stop: dict, terminal_nodes):
-        paths = [nx.shortest_path(self._tree, 1, node) for node in terminal_nodes]
+    def find(self):
+        self.emulate()
+        if not self._terminal_nodes:
+            return None
+        paths = [nx.shortest_path(self._tree, 1, node) for node in self._terminal_nodes]
         for path in paths:
             lst = list(zip(path, path[1:]))
-            yield lst
+            reactions = [self._tree.edges[edge]['reaction'] for edge in lst]
+            yield reactions
 
 
-with SDFRead('./source files/targets', 'r') as file:
-    targets = file.read()
+def main():
+    with SDFRead('./source files/targets.sdf', 'r') as file:
+        targets = file.read()
+    target = choice(targets)
+    if not not_available([target]):
+        print('Target can be bought')
+        return
+    tree = MCTS(target, {'step_count': 100, 'depth_count': 10, 'terminal_count': 10})
+    paths = list(tree.find())
+    with open('result.pickle', 'wb') as f:
+        pickle.dump(paths, f)
+    print('All done')
 
-target = choice(targets)
-path = [target]
-tree = MCTS(target)
-for _ in range(3):
-    target = tree.find({'step_count': 1000, 'depth_count': 10, 'terminal_count': 10}, tree.emulate)
-    path.append(target)
 
-pickle.dump(path, 'result.pickle')
+if __name__ == '__main__':
+    main()
