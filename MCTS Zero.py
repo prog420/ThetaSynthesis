@@ -37,10 +37,10 @@ class MCTS:
         y = model(descriptor)
         list_rules = [x
                       for x in sorted(zip(range(1, len(y[0])), [i.item() for i in y[0]]), key=lambda x: x[1], reverse=True)
-                      if x[1] >= 0.95
+                      if x[1] >= 0.995
                       ]
         list_rules = [(rules[x], y) for x, y in list_rules]
-        return list_rules, choice([-1, 0, 1])
+        return list_rules, 1
 
     @staticmethod
     def filter(reaction):
@@ -71,6 +71,7 @@ class MCTS:
                     node = child_node
                     maximum = self.puct(child_node)
             children = list(self._tree.successors(node))
+            maximum = -10000
         return node
 
     def expand_and_evaluate(self, node):
@@ -78,16 +79,17 @@ class MCTS:
         rules, value = self.nn(reactant)
         for pair in rules:
             rule, probability = pair
+            probability /= len(pair)
             reactor = CGRReactor(rule)
-            products = not_available(reactor(reactant))
-            if not products:
-                continue
-            queue = self._tree.nodes[node]['queue'] + products
-            self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule,
-                                reaction=ReactionContainer([reactant], [*products]))
-            self._tree.add_node(len(self._tree.nodes), queue=queue, mean_action=0, visit_count=0, total_action=0,
-                                depth=nx.shortest_path_length(self._tree, 1, node),
-                                probability=probability)
+            products = list(reactor(reactant))
+            if products:
+                self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule,
+                                    reaction=ReactionContainer([reactant], products))
+                comm_products = not_available(products)
+                queue = self._tree.nodes[node]['queue'] + comm_products
+                self._tree.add_node(len(self._tree.nodes), queue=queue, mean_action=0, visit_count=0, total_action=0,
+                                    depth=nx.shortest_path_length(self._tree, 1, node),
+                                    probability=probability)
         return value
 
     def backup(self, node, value):
@@ -133,6 +135,7 @@ def main():
     with SDFRead('./source files/targets.sdf', 'r') as file:
         targets = file.read()
     target = choice(targets)
+    # target = target[0]
     if not not_available([target]):
         print('Target can be bought')
         return
