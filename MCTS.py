@@ -3,15 +3,15 @@ from CGRtools.containers import ReactionContainer
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
 from math import sqrt
-from Model import Chem
+from model import Chem
 from random import choice
-from time import time
+from decorators import timer
 import networkx as nx
 import pickle
 import torch
 
 c_puct = 4
-flag_value = False
+flag_value = True
 with open('./source files/fitted_fragmentor.pickle', 'rb') as f:
     frag = pickle.load(f)
 with open('./source files/rules_reverse.pickle', 'rb') as f:
@@ -89,7 +89,10 @@ class MCTS:
             return list_rules
 
     def expand_and_evaluate(self, node):
-        reactant = self._tree.nodes[node]['queue'].pop(0)
+        try:
+            reactant = self._tree.nodes[node]['queue'].pop(0)
+        except IndexError:
+            return 1
         if flag_value:
             rules, value = self.nn(reactant)
         else:
@@ -98,8 +101,11 @@ class MCTS:
             rule, probability = pair
             probability /= len(pair)
             reactor = CGRReactor(rule)
-            products = list(reactor(reactant))
-            if products:
+            list_products = list(reactor(reactant))
+            if list_products:
+                products = []
+                for x in list_products:
+                    products.extend(x.split())
                 self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule,
                                     reaction=ReactionContainer([reactant], products))
                 comm_products = not_available(products)
@@ -169,24 +175,24 @@ class MCTS:
         for path in paths:
             lst = list(zip(path, path[1:]))
             reactions = [self._tree.edges[edge]['reaction'] for edge in lst]
-            # if not not_available(reactions[-1].products):
+            if not not_available(reactions[-1].products):
+                print('Synthesis is done')
             yield reactions
 
 
+@timer
 def main():
-    start_time = time()
-    with SDFRead('./source files/targets.sdf', 'r') as file:
+    with SDFRead('./source files/approved_sample.sdf', 'r') as file:
         targets = file.read()
     target = choice(targets)
     # target = target[0]
     if not not_available([target]):
         print('Target can be bought')
         return
-    tree = MCTS(target, {'step_count': 1000, 'depth_count': 10, 'terminal_count': 5})
+    tree = MCTS(target, {'step_count': 10000, 'depth_count': 10, 'terminal_count': 10})
     paths = list(tree.find())
     with open('result.pickle', 'wb') as f:
         pickle.dump(paths, f)
-    print(f'All done, time = {time() - start_time} seconds')
 
 
 if __name__ == '__main__':
