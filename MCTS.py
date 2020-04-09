@@ -153,6 +153,7 @@ class MCTS:
             parent = list(self._tree.predecessors(node))
 
     def emulate(self):
+        start = time()
         for i in range(self._step_count):
             node = self.select()
             if nx.shortest_path_length(self._tree, 1, node) > self._depth_count:
@@ -164,6 +165,8 @@ class MCTS:
                                     if (not self._tree.nodes[node]['queue']) and (node != 1)
                                     ]
             if len(self._terminal_nodes) >= self._terminal_count:
+                return i
+            if time() - start > 100:
                 return i
 
     def train(self, win_lose: dict = None):
@@ -194,13 +197,14 @@ def main():
     for i, target in enumerate(targets):
         start = time()
         if not not_available([target]):
-            print('Target can be bought')
-            return
+            data[i] = ()
+            print(f'{i + 1} target in sale, {i + 1} targets is done')
+            continue
         tree = MCTS(target, {'step_count': 10000, 'depth_count': 10, 'terminal_count': 1000})
-        paths, i = tree.find()
+        paths, j = tree.find()
         finish = time() - start
-        data[i] = (target, paths, [len(x) for x in paths], finish, i)
-        print(f'{i + 1} targets if done')
+        data[i] = (target, paths, [len(x) for x in paths], finish, j)
+        print(f'{i + 1} targets is done')
     with open('result.pickle', 'wb') as f:
         pickle.dump(data, f)
 
