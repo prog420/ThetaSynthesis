@@ -12,6 +12,7 @@ import torch
 
 c_puct = 4
 flag_value = True
+bonehead = False
 with open('./source files/fitted_fragmentor.pickle', 'rb') as f:
     frag = pickle.load(f)
 with open('./source files/rules_reverse.pickle', 'rb') as f:
@@ -96,7 +97,10 @@ class MCTS:
         if flag_value:
             rules, value = self.nn(reactant)
         else:
-            rules, value = self.nn(reactant), self.rollout(node, reactant)
+            if bonehead:
+                rules, value = self.nn(reactant), 1
+            else:
+                rules, value = self.nn(reactant), self.rollout(node, reactant)
         for pair in rules:
             rule, probability = pair
             probability /= len(pair)
