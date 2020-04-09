@@ -2,10 +2,11 @@ from available_compounds_filter import not_available
 from CGRtools.containers import ReactionContainer
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
+from decorators import timer
 from math import sqrt
 from model import Chem
 from random import choice
-from decorators import timer
+from time import time
 import networkx as nx
 import pickle
 import torch
@@ -112,7 +113,7 @@ class MCTS:
                     products.extend(x.split())
                 self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule,
                                     reaction=ReactionContainer([reactant], products))
-                comm_products = not_available(products)
+                comm_products = [x for x in not_available(products) if x not in self._tree.nodes[node]['queue']]
                 queue = self._tree.nodes[node]['queue'] + comm_products
                 self._tree.add_node(len(self._tree.nodes), queue=queue, mean_action=0, visit_count=0, total_action=0,
                                     depth=nx.shortest_path_length(self._tree, 1, node),
@@ -152,10 +153,10 @@ class MCTS:
             parent = list(self._tree.predecessors(node))
 
     def emulate(self):
-        for _ in range(self._step_count):
+        for i in range(self._step_count):
             node = self.select()
             if nx.shortest_path_length(self._tree, 1, node) > self._depth_count:
-                break
+                return i
             self.backup(node, self.expand_and_evaluate(node))
             self._terminal_nodes = [node
                                     for node
@@ -163,40 +164,45 @@ class MCTS:
                                     if (not self._tree.nodes[node]['queue']) and (node != 1)
                                     ]
             if len(self._terminal_nodes) >= self._terminal_count:
-                break
+                return i
 
     def train(self, win_lose: dict = None):
         ...
 
     def find(self):
-        self.emulate()
+        i = self.emulate()
         if not self._terminal_nodes:
-            return None
+            return None, i
         paths = [nx.shortest_path(self._tree, 1, node)
                  for node
                  in self._terminal_nodes]
         paths = [x for x in paths if len(x) == len(max(paths, key=len))]
+        result = []
         for path in paths:
             lst = list(zip(path, path[1:]))
             reactions = [self._tree.edges[edge]['reaction'] for edge in lst]
             if not not_available(reactions[-1].products):
-                print('Synthesis is done')
-            yield reactions
+                result.append(reactions)
+                # yield reactions
+        return result, i
 
 
-@timer
 def main():
-    with SDFRead('./source files/approved_sample.sdf', 'r') as file:
+    with SDFRead('./source files/test_sample.sdf', 'r') as file:
         targets = file.read()
-    target = choice(targets)
-    # target = target[0]
-    if not not_available([target]):
-        print('Target can be bought')
-        return
-    tree = MCTS(target, {'step_count': 10000, 'depth_count': 10, 'terminal_count': 10})
-    paths = list(tree.find())
+    data = dict()
+    for i, target in enumerate(targets):
+        start = time()
+        if not not_available([target]):
+            print('Target can be bought')
+            return
+        tree = MCTS(target, {'step_count': 10000, 'depth_count': 10, 'terminal_count': 1000})
+        paths, i = tree.find()
+        finish = time() - start
+        data[i] = (target, paths, [len(x) for x in paths], finish, i)
+        print(f'{i + 1} targets if done')
     with open('result.pickle', 'wb') as f:
-        pickle.dump(paths, f)
+        pickle.dump(data, f)
 
 
 if __name__ == '__main__':
