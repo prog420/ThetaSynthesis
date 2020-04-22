@@ -1,41 +1,56 @@
-from abc import abstractmethod
-from collections.abc import MutableSequence
-from typing import overload, Iterable
+from abc import abstractmethod, ABC
+from CGRtools.containers import ReactionContainer
+from typing import Tuple
 from ..synthon import Synthon
 
 
-class ScrollABC(MutableSequence):
-    """
-    An implementation of an queue in nodes
-    I did not come up with anything better than call this class like "scroll"
-    I am not sure about inherit from mutable sequence, think about deque as well
-    """
-    @abstractmethod
-    def insert(self, index: int, object: Synthon) -> None: ...
+class ScrollABC(ABC):
+    __slots__ = ('_synthons', '_reaction', '_depth', '_visit_count', '_total_action', '__dict__')
 
-    @overload
-    @abstractmethod
-    def __getitem__(self, i: int) -> Synthon: ...
+    def __init__(self, synthons: Tuple[Synthon, ...], reaction: ReactionContainer, depth: int):
+        self._synthons = synthons
+        self._reaction = reaction
+        self._depth = depth
+        self._visit_count = 0
+        self._total_action = 0.
 
-    @overload
-    @abstractmethod
-    def __getitem__(self, s: slice) -> MutableSequence[Synthon]: ...
+    def __bool__(self):
+        return not self._synthons
 
-    @overload
+    @property
     @abstractmethod
-    def __setitem__(self, i: int, o: Synthon) -> None: ...
+    def premolecules(self) -> Tuple['ScrollABC', ...]:
+        """
+        succesors nodes
+        """
 
-    @overload
+    @property
+    def probabilities(self) -> float:
+        return sum(self._synthons[0].probabilities)
+
+    @property
     @abstractmethod
-    def __setitem__(self, s: slice, o: Iterable[Synthon]) -> None: ...
+    def worse_value(self):
+        """
+        worse value from all synthons in the scroll
+        """
 
-    @overload
-    @abstractmethod
-    def __delitem__(self, i: int) -> None: ...
+    @property
+    def mean_action(self):
+        if not self._visit_count:
+            return 0.
+        return self._total_action / self._visit_count
 
-    @overload
-    @abstractmethod
-    def __delitem__(self, i: slice) -> None: ...
+    def increase_visit_count(self):
+        self._visit_count += 1
 
-    def __len__(self) -> int:
-        pass
+    def increase_total_action(self, value: float):
+        self._total_action += value
+
+    @property
+    def depth(self):
+        return self._depth
+
+    @property
+    def visit_count(self):
+        return self._visit_count

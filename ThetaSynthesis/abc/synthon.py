@@ -1,40 +1,41 @@
 from abc import ABC, abstractmethod
 from CGRtools.containers import MoleculeContainer
-from typing import List
+from typing import List, Tuple
 
 
-class SynthonABC(MoleculeContainer, ABC):
-    """
-    class name maybe is not ideal option especially for chemists
-    """
+class SynthonABC(ABC):
+    __slots__ = ('_molecule', '__dict__')
+    __singletone__ = {}
+
+    def __new__(cls, molecule: MoleculeContainer):
+        if molecule in cls.__singletone__:
+            return cls.__singletone__[molecule]
+        else:
+            obj = object.__new__(cls)
+            cls.__singletone__[molecule] = obj
+            obj._molecule = molecule
+            return obj
+
     @property
     @abstractmethod
-    def descriptor(self) -> torch.FloatTensor:
+    def value(self) -> float:
         """
-        make descriptor from MoleculeContainer and return it, nothing more
+        value of molecule [-1; 1]
         """
 
+    @property
     @abstractmethod
-    def predict(self) -> (List, float):
+    def probabilities(self) -> Tuple[float, ...]:
         """
-        the method take molecule's descriptor and get into neural network, return list of tuples,
-        if tuples - query with probability, and evaluation score, or value
+        vector od probalities with len == premolecules
+        """
+
+    @property
+    @abstractmethod
+    def premolecules(self) -> Tuple[Tuple['SynthonABC', ...], ...]:
+        """
+        return tuple of tuples os Synthons (from nn)
         """
 
 
-class CombineSynthonABC(SynthonABC):
-    """
-    class for synthon with twohead combine neural network
-    """
-
-
-class SlowSynthonABC(SynthonABC):
-    """
-    synthon with onehead neural network, we get value from rollout
-    """
-
-
-class StupidSynthonABC(SlowSynthonABC):
-    """
-    synthon also with onehead neural network, inherit slow synthon, but value always the same number (1)
-    """
+__all__ = ['SynthonABC']
