@@ -25,10 +25,6 @@ class ScrollABC(ABC):
         """
 
     @property
-    def probabilities(self) -> float:
-        return sum(self._synthons[0].probabilities)
-
-    @property
     @abstractmethod
     def worse_value(self):
         """
