@@ -2,17 +2,16 @@ from available_compounds_filter import not_available
 from CGRtools.containers import ReactionContainer
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
-from decorators import timer
+from collections import Counter
 from math import sqrt
 from model import Chem
-from random import choice
 from time import time
 import networkx as nx
 import pickle
 import torch
 
 c_puct = 4
-flag_value = True
+flag_value = False
 bonehead = False
 with open('./source files/fitted_fragmentor.pickle', 'rb') as f:
     frag = pickle.load(f)
@@ -105,7 +104,7 @@ class MCTS:
         for pair in rules:
             rule, probability = pair
             probability /= len(pair)
-            reactor = CGRReactor(rule)
+            reactor = CGRReactor(rule, delete_atoms=True)
             list_products = list(reactor(reactant))
             if list_products:
                 products = []
@@ -128,12 +127,12 @@ class MCTS:
             descriptor = torch.FloatTensor(frag.transform([reactant]).values)
             y = only_policy(descriptor)
             list_rules = [x for x in
-                          sorted(enumerate([i.item() for i in y[0]], start=1), key=lambda x: x[1], reverse=True)
+                          sorted(enumerate([i.item() for i in y[0]]), key=lambda x: x[1], reverse=True)
                           if x[1] == 1
                           ]
             list_rules = [(rules[x], y) for x, y in list_rules]
             for rule in list_rules:
-                reactor = CGRReactor(rule[0])
+                reactor = CGRReactor(rule[0], delete_atoms=True)
                 products = list(reactor(reactant))
                 if products:
                     queue.extend(not_available(products))
@@ -203,7 +202,7 @@ def main():
         tree = MCTS(target, {'step_count': 10000, 'depth_count': 10, 'terminal_count': 1000})
         paths, j = tree.find()
         finish = time() - start
-        data[i] = (target, paths, [len(x) for x in paths], finish, j)
+        data[i] = (target, paths, [len(x) for x in paths] if paths else [], finish, j)
         print(f'{i + 1} targets is done')
     with open('result.pickle', 'wb') as f:
         pickle.dump(data, f)

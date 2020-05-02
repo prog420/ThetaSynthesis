@@ -5,4 +5,4 @@ with open('source files/blocks.pickle', 'rb') as f:
 
 
 def not_available(lst):
-    return [mol for mol in lst if str(mol) not in blocks]
+    return [mol for mol in lst if (str(mol) not in blocks) and (len(mol) > 6)]
