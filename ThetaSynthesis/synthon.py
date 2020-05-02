@@ -1,12 +1,19 @@
+from typing import Tuple
+
 from .abc import SynthonABC
 
 
 class Synthon(SynthonABC):
     @property
-    def descriptor(self):
-        return
+    def value(self) -> float:
+        pass
 
-    def predict(self):
+    @property
+    def probabilities(self) -> Tuple[float, ...]:
+        pass
+
+    @property
+    def premolecules(self) -> Tuple[Tuple['SynthonABC', ...], ...]:
         pass
 
 
