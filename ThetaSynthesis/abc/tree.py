@@ -36,5 +36,11 @@ class RetroTreeABC(ABC):
         return a node which have not expanded yet and will be expanded now
         """
 
+    def predecessor(self, node):
+        return self._pred[node]
+
+    def successors(self, node):
+        return self._succ[node]
+
 
 __all__ = ['RetroTreeABC']
