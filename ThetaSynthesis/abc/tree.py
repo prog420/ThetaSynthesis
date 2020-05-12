@@ -6,13 +6,15 @@ from ..synthon import Synthon
 
 
 class RetroTreeABC(ABC):
-    __slots__ = ('_target', '_succ', '_pred', '_stop', '__dict__')
+    __slots__ = ('_target', '_succ', '_pred', '_depth_stop', '_count_stop', '_terminal_count', '__dict__')
 
     def __init__(self, target: MoleculeContainer, stop_conditions: Dict):
-        self._target = Synthon(target)
-        self._succ: Dict[Scroll: Set[Scroll, ...]] = {self._target: set()}
+        self._target = Synthon()
+        self._succ: Dict[Scroll: Set[Scroll, ...]] = {self._target: {}}
         self._pred: Dict[Scroll: Optional[Scroll]] = {self._target: None}
-        self._stop = stop_conditions
+        self._depth_stop = stop_conditions['depth']
+        self._count_stop = stop_conditions['count']
+        self._terminal_stop = stop_conditions['terminal']
 
     def __iter__(self):
         return self

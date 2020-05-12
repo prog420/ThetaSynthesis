@@ -27,14 +27,14 @@ class SynthonABC(ABC):
     @abstractmethod
     def probabilities(self) -> Tuple[float, ...]:
         """
-        vector od probalities with len == premolecules
+        vector of probabilities with len == premolecules
         """
 
     @property
     @abstractmethod
     def premolecules(self) -> Tuple[Tuple['SynthonABC', ...], ...]:
         """
-        return tuple of tuples os Synthons (from nn)
+        return tuple of tuples of Synthons (from nn)
         """
 
 
