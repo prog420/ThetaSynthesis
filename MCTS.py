@@ -2,18 +2,16 @@ from available_compounds_filter import not_available
 from CGRtools.containers import ReactionContainer
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
-from decorators import timer
 from math import sqrt
 from model import Chem
-from random import choice
 from time import time
 import networkx as nx
 import pickle
 import torch
 
 c_puct = 4
-flag_value = True
-bonehead = False
+flag_value = False
+bonehead = True
 with open('./source files/fitted_fragmentor.pickle', 'rb') as f:
     frag = pickle.load(f)
 with open('./source files/rules_reverse.pickle', 'rb') as f:
@@ -34,6 +32,7 @@ class MCTS:
         self._tree.add_node(1, depth=0, queue=[target], mean_action=0, visit_count=0, total_action=0,
                             probability=1.)
         self._terminal_nodes = []
+        self._counter = {}
         self._step_count, self._depth_count, self._terminal_count = stop['step_count'], \
                                                                     stop['depth_count'], \
                                                                     stop['terminal_count']
@@ -45,6 +44,10 @@ class MCTS:
     @staticmethod
     def filter(reaction):
         return True
+
+    @property
+    def counter(self):
+        return self._counter
 
     def puct(self, node):
         mean_action = self._tree.nodes[node]['mean_action']
@@ -75,20 +78,18 @@ class MCTS:
             y = policy_value(descriptor)
             list_rules = [x
                           for x in
-                          sorted(enumerate([i.item() for i in y[0][0]], start=1), key=lambda x: x[1], reverse=True)
-                          if x[1] >= 0.995
+                          sorted(enumerate([i.item() for i in y[0][0]]), key=lambda x: x[1], reverse=True)
                           ]
             list_rules = [(rules[x], y) for x, y in list_rules]
-            return list_rules, y[1][0][0].item()
+            return [x for i, x in enumerate(list_rules) if i < 100], y[1][0][0].item()
         else:
             y = only_policy(descriptor)
             list_rules = [x
                           for x in
-                          sorted(enumerate([i.item() for i in y[0]], start=1), key=lambda x: x[1], reverse=True)
-                          if x[1] >= 0.995
+                          sorted(enumerate([i.item() for i in y[0]]), key=lambda x: x[1], reverse=True)
                           ]
             list_rules = [(rules[x], y) for x, y in list_rules]
-            return list_rules
+            return [x for i, x in enumerate(list_rules) if i < 100]
 
     def expand_and_evaluate(self, node):
         try:
@@ -104,15 +105,15 @@ class MCTS:
                 rules, value = self.nn(reactant), self.rollout(node, reactant)
         for pair in rules:
             rule, probability = pair
-            probability /= len(pair)
-            reactor = CGRReactor(rule)
+            # probability /= len(pair)
+            reactor = CGRReactor(rule, delete_atoms=True)
             list_products = list(reactor(reactant))
             if list_products:
                 products = []
                 for x in list_products:
                     products.extend(x.split())
                 self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule,
-                                    reaction=ReactionContainer([reactant], products))
+                                    reaction=ReactionContainer(products, [reactant]))
                 comm_products = [x for x in not_available(products) if x not in self._tree.nodes[node]['queue']]
                 queue = self._tree.nodes[node]['queue'] + comm_products
                 self._tree.add_node(len(self._tree.nodes), queue=queue, mean_action=0, visit_count=0, total_action=0,
@@ -128,12 +129,12 @@ class MCTS:
             descriptor = torch.FloatTensor(frag.transform([reactant]).values)
             y = only_policy(descriptor)
             list_rules = [x for x in
-                          sorted(enumerate([i.item() for i in y[0]], start=1), key=lambda x: x[1], reverse=True)
+                          sorted(enumerate([i.item() for i in y[0]]), key=lambda x: x[1], reverse=True)
                           if x[1] == 1
                           ]
             list_rules = [(rules[x], y) for x, y in list_rules]
             for rule in list_rules:
-                reactor = CGRReactor(rule[0])
+                reactor = CGRReactor(rule[0], delete_atoms=True)
                 products = list(reactor(reactant))
                 if products:
                     queue.extend(not_available(products))
@@ -157,7 +158,7 @@ class MCTS:
         for i in range(self._step_count):
             node = self.select()
             if nx.shortest_path_length(self._tree, 1, node) > self._depth_count:
-                return i
+                continue
             self.backup(node, self.expand_and_evaluate(node))
             self._terminal_nodes = [node
                                     for node
@@ -165,8 +166,6 @@ class MCTS:
                                     if (not self._tree.nodes[node]['queue']) and (node != 1)
                                     ]
             if len(self._terminal_nodes) >= self._terminal_count:
-                return i
-            if time() - start > 100:
                 return i
 
     def train(self, win_lose: dict = None):
@@ -191,7 +190,7 @@ class MCTS:
 
 
 def main():
-    with SDFRead('./source files/test_sample.sdf', 'r') as file:
+    with SDFRead('./source files/25.sdf', 'r') as file:
         targets = file.read()
     data = dict()
     for i, target in enumerate(targets):
@@ -203,9 +202,9 @@ def main():
         tree = MCTS(target, {'step_count': 10000, 'depth_count': 10, 'terminal_count': 1000})
         paths, j = tree.find()
         finish = time() - start
-        data[i] = (target, paths, [len(x) for x in paths], finish, j)
+        data[i] = (target, paths, [len(x) for x in paths] if paths else [], finish, j)
         print(f'{i + 1} targets is done')
-    with open('result.pickle', 'wb') as f:
+    with open('twohead_result.pickle', 'wb') as f:
         pickle.dump(data, f)
 
 

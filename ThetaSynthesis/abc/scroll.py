@@ -21,7 +21,7 @@ class ScrollABC(ABC):
     @abstractmethod
     def premolecules(self) -> Tuple['ScrollABC', ...]:
         """
-        succesors nodes
+        successors nodes
         """
 
     @property

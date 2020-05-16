@@ -78,4 +78,4 @@ class SlowSynthon(StupidSynthon):
     ...
 
 
-__all__ = ['CombineSynthon', 'SlowSynthon', 'StupidSynthon']
+__all__ = ['Synthon', 'CombineSynthon', 'SlowSynthon', 'StupidSynthon']
