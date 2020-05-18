@@ -19,6 +19,10 @@ with open('./source files/rules_reverse.pickle', 'rb') as f:
 
 class Synthon(SynthonABC):
     @property
+    def get_molecule(self):
+        return self._molecule
+
+    @property
     def value(self) -> float:
         pass
 
@@ -47,8 +51,8 @@ class CombineSynthon(Synthon):
             if list_products:
                 products = []
                 for x in list_products:
-                    products.extend(x.split())
-                out.extend([CombineSynthon(mol) for mol in products])
+                    products.append(x.split())
+                out.append(tuple([CombineSynthon(mol) for mol in products]))
         return tuple(out)
 
     @cached_property
@@ -72,6 +76,9 @@ class StupidSynthon(Synthon):
     @property
     def value(self):
         return 1
+
+    def _neural_network(self):
+        return
 
 
 class SlowSynthon(StupidSynthon):

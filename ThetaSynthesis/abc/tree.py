@@ -9,7 +9,7 @@ class RetroTreeABC(ABC):
     __slots__ = ('_target', '_succ', '_pred', '_depth_stop', '_count_stop', '_terminal_count', '__dict__')
 
     def __init__(self, target: MoleculeContainer, stop_conditions: Dict):
-        self._target = Synthon(target)
+        self._target = Scroll(synthons=tuple([Synthon(target)]), reaction=None, depth=0)
         self._succ: Dict[Scroll: Set[Scroll, ...]] = {self._target: {}}
         self._pred: Dict[Scroll: Optional[Scroll]] = {self._target: None}
         self._depth_stop = stop_conditions['depth']

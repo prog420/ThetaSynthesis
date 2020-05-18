@@ -7,10 +7,19 @@ c_puct = 4
 
 class RetroTree(RetroTreeABC):
     def __next__(self):
-        """
-        return one path from root node to terminal node
-        """
-        yield
+        while self._count_stop or self._terminal_count:
+            node = self._select
+            if node.depth == self._depth_stop or node:
+                self._backup(node, 0)
+                self._terminal_count -= 1
+                yield self._path(node)
+            premolecules = node.premolecules
+            for mol in premolecules:
+                self._pred[mol] = node
+            self._succ[node] = set(premolecules)
+            self._backup(node, node.value)
+            self._count_stop -= 1
+        raise StopIteration
 
     def _puct(self, scroll):
         mean_action = scroll.mean_action
@@ -47,6 +56,15 @@ class RetroTree(RetroTreeABC):
             scroll.increase_visit_count()
             scroll = parent
             parent = self.predecessor(scroll)
+
+    def _path(self, node):
+        path = [node.get_reaction]
+        while True:
+            node = self._pred[node]
+            try:
+                path.append(node.get_reaction)
+            except AttributeError:
+                return path
 
 
 __all__ = ['RetroTree']
