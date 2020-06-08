@@ -8,7 +8,7 @@ c_puct = 4
 
 class RetroTree(RetroTreeABC):
     def __init__(self, target, stop_conditions: Dict):
-        self._target = Scroll(synthons=tuple([target]), reaction=None, depth=0)
+        self._target = Scroll(synthons=tuple([target]), reaction=None, probability=1., depth=0)
         self._succ = {self._target: {}}
         self._pred = {self._target: None}
         self._depth_stop = stop_conditions['depth_count']

@@ -8,12 +8,13 @@ class Scroll(ScrollABC):
     def premolecules(self) -> Tuple['Scroll', ...]:
         in_scroll = list(self._synthons)
         target = in_scroll.pop(0)
-        new_synthons = target.premolecules
+        new_synthons_with_probs = zip(target.premolecules, target.probabilities)
         new_depth = self._depth + 1
         scrolls = []
-        for synthons in new_synthons:
+        for pair in new_synthons_with_probs:
+            synthons, probability = pair
             reaction = ReactionContainer(self._extract(synthons), [target.get_molecule])
-            child_scroll = Scroll(in_scroll + list(synthons), reaction, propability, new_depth)
+            child_scroll = Scroll(in_scroll + list(synthons), reaction, probability, new_depth)
             scrolls.append(child_scroll)
         return tuple(scrolls)
 
