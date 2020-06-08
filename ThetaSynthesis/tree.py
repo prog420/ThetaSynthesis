@@ -1,11 +1,20 @@
 from math import sqrt
+from typing import Dict
 from .abc import RetroTreeABC
-from .scroll import Scroll
+from . import Scroll
 
 c_puct = 4
 
 
 class RetroTree(RetroTreeABC):
+    def __init__(self, target, stop_conditions: Dict):
+        self._target = Scroll(synthons=tuple([target]), reaction=None, depth=0)
+        self._succ = {self._target: {}}
+        self._pred = {self._target: None}
+        self._depth_stop = stop_conditions['depth_count']
+        self._count_stop = stop_conditions['step_count']
+        self._terminal_stop = stop_conditions['terminal_count']
+
     def __next__(self):
         while self._count_stop or self._terminal_count:
             node = self._select
@@ -21,7 +30,7 @@ class RetroTree(RetroTreeABC):
             self._count_stop -= 1
         raise StopIteration
 
-    def _puct(self, scroll):
+    def _puct(self, scroll: Scroll) -> float:
         mean_action = scroll.mean_action
         visit_count = scroll.visit_count
         probability = scroll.probability
@@ -30,7 +39,7 @@ class RetroTree(RetroTreeABC):
         return mean_action + ucp
 
     @property
-    def _select(self):
+    def _select(self) -> Scroll:
         """
         select node with best q+u and which haven't expanded yet
         """
@@ -41,7 +50,7 @@ class RetroTree(RetroTreeABC):
             children = self.successors(scroll)
         return scroll
 
-    def _comrades(self, scroll):
+    def _comrades(self, scroll: Scroll):
         return self.successors(self.predecessor(scroll))
 
     def _backup(self, scroll: Scroll, value: float):
@@ -57,7 +66,7 @@ class RetroTree(RetroTreeABC):
             scroll = parent
             parent = self.predecessor(scroll)
 
-    def _path(self, node):
+    def _path(self, node: Scroll):
         path = [node.get_reaction]
         while True:
             node = self._pred[node]

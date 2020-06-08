@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from CGRtools.containers import MoleculeContainer
-from typing import List, Tuple
+from typing import Tuple
 
 
 class SynthonABC(ABC):

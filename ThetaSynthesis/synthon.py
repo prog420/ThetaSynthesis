@@ -8,12 +8,12 @@ from .source import Chem
 
 
 twohead_model = Chem(2006, 2273)
-twohead_model.load_state_dict(torchload('../source files/twohead_state_dict.pth'))
+twohead_model.load_state_dict(torchload('source files/twohead_state_dict.pth'))
 twohead_model.eval()
 
-with open('./source files/fitted_fragmentor.pickle', 'rb') as f:
+with open('source files/fitted_fragmentor.pickle', 'rb') as f:
     fragmentor = load(f)
-with open('./source files/rules_reverse.pickle', 'rb') as f:
+with open('source files/rules_reverse.pickle', 'rb') as f:
     rules = load(f)
 
 
@@ -57,11 +57,11 @@ class CombineSynthon(Synthon):
 
     @cached_property
     def probabilities(self) -> Tuple[float, ...]:
-        return tuple([x.item() for x in self._neural_network()[0][0]])
+        return tuple([x.item() for x in self._neural_network[0][0]])
 
     @cached_property
     def value(self) -> float:
-        return self._neural_network()[1].item()
+        return self._neural_network[1].item()
 
     @cached_property
     def _neural_network(self):
