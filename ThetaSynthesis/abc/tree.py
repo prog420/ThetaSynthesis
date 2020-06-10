@@ -17,7 +17,7 @@ class RetroTreeABC(ABC):
         return self._pred[node]
 
     def successors(self, node):
-        return self._succ[node]
+        return self._succ.get(node)
 
 
 __all__ = ['RetroTreeABC']
