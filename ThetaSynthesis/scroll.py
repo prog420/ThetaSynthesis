@@ -1,11 +1,12 @@
 from CGRtools.containers import MoleculeContainer, ReactionContainer
+from functools import cached_property
 from typing import Tuple
 from .abc import ScrollABC
 from .source import not_available
 
 
 class Scroll(ScrollABC):
-    @property
+    @cached_property
     def premolecules(self) -> Tuple['Scroll', ...]:
         in_scroll = list(self._synthons)
         target = in_scroll.pop(0)

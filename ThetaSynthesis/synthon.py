@@ -38,7 +38,7 @@ class Synthon(SynthonABC):
     def probabilities(self) -> Tuple[float, ...]:
         return tuple([x[1] for x in self._prods_probs])
 
-    @cached_property
+    @property
     def _get_descriptor(self):
         return FloatTensor(fragmentor.transform([self.get_molecule]).values)
 
@@ -70,11 +70,11 @@ class CombineSynthon(Synthon):
     def value(self) -> float:
         return self._neural_network[1].item()
 
-    @cached_property
+    @property
     def _neural_network(self):
         return twohead_model(self._get_descriptor)
 
-    @property
+    @cached_property
     def _probs(self):
         return tuple([x.item() for x in self._neural_network[0][0]])
 
@@ -85,11 +85,11 @@ class StupidSynthon(Synthon):
     def value(self):
         return 1
 
-    @cached_property
+    @property
     def _neural_network(self):
         return onehead_model(self._get_descriptor)
 
-    @property
+    @cached_property
     def _probs(self):
         return tuple([x.item() for x in self._neural_network[0]])
 
