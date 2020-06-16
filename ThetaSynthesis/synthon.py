@@ -19,11 +19,12 @@ with open('source files/fitted_fragmentor.pickle', 'rb') as f:
     fragmentor = load(f)
 with open('source files/rules_reverse.pickle', 'rb') as f:
     rules = load(f)
+reactors = [CGRReactor(rule, delete_atoms=True) for rule in rules]
 
 
 class Synthon(SynthonABC):
     @property
-    def get_molecule(self):
+    def molecule(self):
         return self._molecule
 
     @property
@@ -38,30 +39,37 @@ class Synthon(SynthonABC):
     def probabilities(self) -> Tuple[float, ...]:
         return tuple([x[1] for x in self._prods_probs])
 
-    @property
-    def _get_descriptor(self):
-        return FloatTensor(fragmentor.transform([self.get_molecule]).values)
+    @cached_property
+    def _descriptor(self):
+        return FloatTensor(fragmentor.transform([self.molecule]).values)
 
     @abstractmethod
     def _probs(self):
         """
-
+        raw vector of probabilities from neural network
         """
 
-    @property
+    @cached_property
     def _prods_probs(self):
+        """
+        vector of pairs with Synthon object and probability of that Synthon
+        the same for each child class
+        take only the best 100 rules
+        """
+        # FIXME: rules fix!
         vector = sorted(list(enumerate(self._probs)), key=lambda x: x[1], reverse=True)
-        best_100_rules_with_probs = [(rules[x[0]], x[1]) for x in vector[:100]]
+        # pairs with rule on reactor and probability
+        best_100_rules_with_probs = [(reactors[x[0]], x[1]) for x in vector[:100]]
         out = []
         for pair in best_100_rules_with_probs:
-            rule, prob = pair
-            reactor = CGRReactor(rule, delete_atoms=True)
-            list_products = list(reactor(self.get_molecule))
+            reactor, prob = pair
+            list_products = list(reactor(self.molecule))
             if list_products:
                 products = []
                 for x in list_products:
-                    products.append(x.split())
-                out.append([[self.__new__(type(self), mol[0]) for mol in products], prob])
+                    products.extend(x.split())
+                # create a new objects of the same class and append to out
+                out.append([[type(self)(mol) for mol in products], prob])
         return out
 
 
@@ -70,13 +78,13 @@ class CombineSynthon(Synthon):
     def value(self) -> float:
         return self._neural_network[1].item()
 
-    @property
+    @cached_property
     def _neural_network(self):
-        return twohead_model(self._get_descriptor)
+        return twohead_model(self._descriptor)
 
     @cached_property
     def _probs(self):
-        return tuple([x.item() for x in self._neural_network[0][0]])
+        return tuple(x.item() for x in self._neural_network[0][0])
 
 
 class StupidSynthon(Synthon):
@@ -85,9 +93,9 @@ class StupidSynthon(Synthon):
     def value(self):
         return 1
 
-    @property
+    @cached_property
     def _neural_network(self):
-        return onehead_model(self._get_descriptor)
+        return onehead_model(self._descriptor)
 
     @cached_property
     def _probs(self):
@@ -97,8 +105,11 @@ class StupidSynthon(Synthon):
 class SlowSynthon(StupidSynthon):
     @cached_property
     def value(self):
+        """
+        value get from rollout function
+        """
         len_rollout = 10
-        queue = [self.get_molecule]
+        queue = [self.molecule]
         for _ in range(len_rollout):
             reactant = queue.pop(0)
             descriptor = FloatTensor(fragmentor.transform([reactant]).values)

@@ -4,9 +4,6 @@ from abc import ABC, abstractmethod
 class RetroTreeABC(ABC):
     __slots__ = ('_target', '_succ', '_pred', '_depth_stop', '_count_stop', '_terminal_count', '__dict__')
 
-    def __iter__(self):
-        return self
-
     @abstractmethod
     def __next__(self):
         """

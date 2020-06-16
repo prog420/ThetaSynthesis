@@ -16,6 +16,9 @@ class ScrollABC(ABC):
         self._probability = probability
 
     def __bool__(self):
+        """
+        True if a node is terminal
+        """
         return not self._synthons
 
     @property
