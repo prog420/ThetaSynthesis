@@ -60,7 +60,7 @@ class ScrollABC(ABC):
         return self._value
 
     @property
-    def get_reaction(self):
+    def reaction(self):
         return self._reaction
 
     @property

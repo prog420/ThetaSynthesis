@@ -25,27 +25,21 @@ class RetroTree(RetroTreeABC):
         # FIXME too slow, need more speed
         # FIXME on next step of tree molecule must have less atoms
         # FIXME delete terminal stop
-        if not self._count_stop:
-            raise StopIteration
-        else:
-            max_count = len(self._succ) + self._count_stop
-            while len(self._succ) <= max_count:
-                print(len(self._succ))
-                node = self._select()
-                if node.depth == self._depth_stop:
-                    self._backup(node, 0)
-                if node:
-                    break
-                premolecules = node.premolecules
-                for mol in premolecules:
-                    self._pred[mol] = node
-                self._succ[node] = set(premolecules)
-                self._backup(node, node.value)
-        terminal_nodes = [x for x in self._succ if x]
-        if terminal_nodes:
-            return self._path(terminal_nodes[0])
-        else:
-            return None
+        max_count = self._count_stop
+        while len(self._succ) <= max_count:
+            print(len(self._succ))
+            node = self._select()
+            if node.depth == self._depth_stop:
+                self._backup(node, -1)
+            if node:
+                self._backup(node, 0)
+                max_count += self._count_stop
+                yield self._path(node)
+            premolecules = node.premolecules
+            for mol in premolecules:
+                self._pred[mol] = node
+            self._succ[node] = set(premolecules)
+            self._backup(node, node.value)
 
     def _puct(self, scroll: Scroll) -> float:
         mean_action = scroll.mean_action
@@ -89,7 +83,7 @@ class RetroTree(RetroTreeABC):
         """
         path from terminal node to root node
         """
-        path = [node.get_reaction]
+        path = [node.reaction]
         while True:
             node = self._pred[node]
             try:

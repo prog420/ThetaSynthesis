@@ -10,8 +10,9 @@ def main():
         targets = file.read()
     target = targets[6]
     tree = RetroTree(target=target, class_name=CombineSynthon, stop_conditions={'depth_count': 10,
-                                                                                'step_count': 200,
+                                                                                'step_count': 100,
                                                                                 })
+    print(next(tree))
     print(next(tree))
 
 
