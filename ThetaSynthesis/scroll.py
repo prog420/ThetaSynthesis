@@ -8,6 +8,7 @@ from .source import not_available
 class Scroll(ScrollABC):
     @cached_property
     def premolecules(self) -> Tuple['Scroll', ...]:
+        # TODO; refactor and fix this
         """
         return new scrolls from that scroll
         """
