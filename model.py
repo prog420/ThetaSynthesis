@@ -1,4 +1,5 @@
-from torch.nn import Sequential, Linear, Sigmoid, ReLU, Module
+from torch.nn import Sequential, Linear, Sigmoid, ReLU, Module, Softmax
+from torch.nn.init import kaiming_normal_, zeros_
 
 
 class Chem(Module):

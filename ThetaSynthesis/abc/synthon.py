@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from CGRtools.containers import MoleculeContainer
-from typing import List, Tuple
+from typing import Tuple
 
 
 class SynthonABC(ABC):
@@ -16,25 +16,22 @@ class SynthonABC(ABC):
             obj._molecule = molecule
             return obj
 
-    @property
     @abstractmethod
     def value(self) -> float:
         """
         value of molecule [-1; 1]
         """
 
-    @property
     @abstractmethod
     def probabilities(self) -> Tuple[float, ...]:
         """
-        vector od probalities with len == premolecules
+        vector of probabilities with len == premolecules
         """
 
-    @property
     @abstractmethod
     def premolecules(self) -> Tuple[Tuple['SynthonABC', ...], ...]:
         """
-        return tuple of tuples os Synthons (from nn)
+        return tuple of tuples of Synthons (from nn)
         """
 
 

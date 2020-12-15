@@ -2,11 +2,19 @@ from abc import ABC, abstractmethod
 
 
 class RetroTreeABC(ABC):
-    def __init__(self):
-        ...
+    __slots__ = ('_target', '_succ', '_pred', '_depth_stop', '_count_stop', '_terminal_count', '__dict__')
 
-    def select(self):
-        ...
+    @abstractmethod
+    def __next__(self):
+        """
+        yield a path from target molecule to terminal node
+        """
 
-    def expand(self):
-        ...
+    def predecessor(self, node):
+        return self._pred[node]
+
+    def successors(self, node):
+        return self._succ.get(node)
+
+
+__all__ = ['RetroTreeABC']

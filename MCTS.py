@@ -2,7 +2,6 @@ from available_compounds_filter import not_available
 from CGRtools.containers import ReactionContainer
 from CGRtools.files import SDFRead
 from CGRtools.reactor import CGRReactor
-from collections import Counter
 from math import sqrt
 from model import Chem
 from time import time
@@ -33,7 +32,7 @@ class MCTS:
         self._tree.add_node(1, depth=0, queue=[target], mean_action=0, visit_count=0, total_action=0,
                             probability=1.)
         self._terminal_nodes = []
-        self._counter = Counter()
+        self._counter = {}
         self._step_count, self._depth_count, self._terminal_count = stop['step_count'], \
                                                                     stop['depth_count'], \
                                                                     stop['terminal_count']
@@ -104,7 +103,6 @@ class MCTS:
                 rules, value = self.nn(reactant), 1
             else:
                 rules, value = self.nn(reactant), self.rollout(node, reactant)
-        local_counter = Counter()
         for pair in rules:
             rule, probability = pair
             # probability /= len(pair)
@@ -112,17 +110,15 @@ class MCTS:
             list_products = list(reactor(reactant))
             if list_products:
                 products = []
-                local_counter[rule] = 1
                 for x in list_products:
                     products.extend(x.split())
                 self._tree.add_edge(node, len(self._tree.nodes) + 1, rule=rule,
-                                    reaction=ReactionContainer([reactant], products))
+                                    reaction=ReactionContainer(products, [reactant]))
                 comm_products = [x for x in not_available(products) if x not in self._tree.nodes[node]['queue']]
                 queue = self._tree.nodes[node]['queue'] + comm_products
                 self._tree.add_node(len(self._tree.nodes), queue=queue, mean_action=0, visit_count=0, total_action=0,
                                     depth=nx.shortest_path_length(self._tree, 1, node),
                                     probability=probability)
-        self._counter += local_counter
         return value
 
     def rollout(self, node, mol_container):
@@ -171,6 +167,8 @@ class MCTS:
                                     ]
             if len(self._terminal_nodes) >= self._terminal_count:
                 return i
+            if time() - start > 360:
+                return i
 
     def train(self, win_lose: dict = None):
         ...
@@ -194,10 +192,12 @@ class MCTS:
 
 
 def main():
-    with SDFRead('./source files/test_sample.sdf', 'r') as file:
+    with SDFRead('./source files/50.sdf', 'r') as file:
         targets = file.read()
     data = dict()
     for i, target in enumerate(targets):
+        if i == 12:
+            break
         start = time()
         if not not_available([target]):
             data[i] = ()
@@ -206,9 +206,9 @@ def main():
         tree = MCTS(target, {'step_count': 10000, 'depth_count': 10, 'terminal_count': 1000})
         paths, j = tree.find()
         finish = time() - start
-        data[i] = (target, paths, [len(x) for x in paths] if paths else [], finish, j, tree.counter)
+        data[i] = (target, paths, [len(x) for x in paths] if paths else [], finish, j)
         print(f'{i + 1} targets is done')
-    with open('result.pickle', 'wb') as f:
+    with open('twohead_result.pickle', 'wb') as f:
         pickle.dump(data, f)
 
 
