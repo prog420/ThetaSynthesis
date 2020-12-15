@@ -1,11 +1,12 @@
 from abc import abstractmethod
 from CGRtools import CGRReactor
 from functools import cached_property
+from MorganFingerprint import MorganFingerprint
 from pickle import load
-from torch import FloatTensor, load as torchload
+from torch import FloatTensor, load as torchload, device
 from typing import Tuple, List
 from .abc import SynthonABC
-from .source import Chem, not_available
+from .source import Chem, not_available, SimpleModel, SimpleNet, TwoHeadedNet
 
 
 twohead_model = Chem(2006, 2273)
@@ -14,6 +15,12 @@ twohead_model.eval()
 
 onehead_model = torchload('./source files/full_model.pth')
 onehead_model.eval()
+
+new_onehead_model = SimpleModel(inp_num=2048, hid_num=6000, out_num=2272)
+new_onehead_model.load_state_dict(torchload('./source files/new_simple_model.pth', map_location=device('cpu')))
+new_onehead_model.eval()
+
+morgan = MorganFingerprint(length=2048, number_bit_pairs=4)
 
 with open('source files/fitted_fragmentor.pickle', 'rb') as f:
     fragmentor = load(f)
@@ -33,15 +40,15 @@ class Synthon(SynthonABC):
 
     @cached_property
     def premolecules(self) -> Tuple[Tuple['Synthon', ...], ...]:
-        return tuple([x[0] for x in self._prods_probs])
+        return tuple([x[0] for x in self._prods_probs()])
 
     @cached_property
     def probabilities(self) -> Tuple[float, ...]:
-        return tuple([x[1] for x in self._prods_probs])
+        return tuple([x[1] for x in self._prods_probs()])
 
     @cached_property
     def _descriptor(self):
-        return FloatTensor(fragmentor.transform([self.molecule]).values)
+        return FloatTensor(morgan.transform([self.molecule]).values)
 
     @abstractmethod
     def _probs(self):
@@ -49,7 +56,6 @@ class Synthon(SynthonABC):
         raw vector of probabilities from neural network
         """
 
-    @cached_property
     def _prods_probs(self):
         """
         vector of pairs with Synthon object and probability of that Synthon
@@ -112,7 +118,7 @@ class SlowSynthon(StupidSynthon):
         queue = [self.molecule]
         for _ in range(len_rollout):
             reactant = queue.pop(0)
-            descriptor = FloatTensor(fragmentor.transform([reactant]).values)
+            descriptor = FloatTensor(morgan.transform([reactant]))
             y = onehead_model(descriptor)
             list_rules = [x for x in
                           sorted(enumerate([i.item() for i in y[0]]), key=lambda x: x[1], reverse=True)

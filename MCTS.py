@@ -167,6 +167,8 @@ class MCTS:
                                     ]
             if len(self._terminal_nodes) >= self._terminal_count:
                 return i
+            if time() - start > 360:
+                return i
 
     def train(self, win_lose: dict = None):
         ...
@@ -190,10 +192,12 @@ class MCTS:
 
 
 def main():
-    with SDFRead('./source files/25.sdf', 'r') as file:
+    with SDFRead('./source files/50.sdf', 'r') as file:
         targets = file.read()
     data = dict()
     for i, target in enumerate(targets):
+        if i == 12:
+            break
         start = time()
         if not not_available([target]):
             data[i] = ()

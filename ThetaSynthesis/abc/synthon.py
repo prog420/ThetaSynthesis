@@ -16,21 +16,18 @@ class SynthonABC(ABC):
             obj._molecule = molecule
             return obj
 
-    @property
     @abstractmethod
     def value(self) -> float:
         """
         value of molecule [-1; 1]
         """
 
-    @property
     @abstractmethod
     def probabilities(self) -> Tuple[float, ...]:
         """
         vector of probabilities with len == premolecules
         """
 
-    @property
     @abstractmethod
     def premolecules(self) -> Tuple[Tuple['SynthonABC', ...], ...]:
         """

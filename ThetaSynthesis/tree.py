@@ -25,6 +25,7 @@ class RetroTree(RetroTreeABC):
         # FIXME too slow, need more speed
         # FIXME on next step of tree molecule must have less atoms
         # FIXME delete terminal stop
+        # FIXME fix cycling
         max_count = self._count_stop
         while len(self._succ) <= max_count:
             print(len(self._succ))
