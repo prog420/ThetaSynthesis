@@ -7,6 +7,7 @@ c_puct = 4
 
 
 class RetroTree(RetroTreeABC):
+    # TODO add partial_fit of tree
     def __init__(self, target, class_name, stop_conditions: Dict):
         self._target = Scroll(synthons=tuple([class_name(target)]), reaction=None, probability=1., depth=0)
         self._succ = {self._target: set()}
@@ -22,21 +23,21 @@ class RetroTree(RetroTreeABC):
         return self._generator
 
     def __generator(self):
-        # FIXME too slow, need more speed
         # FIXME on next step of tree molecule must have less atoms
         # FIXME delete terminal stop
         # FIXME fix cycling
         max_count = self._count_stop
-        while len(self._succ) <= max_count:
+        while len(self._succ) < max_count:
             print(len(self._succ))
             node = self._select()
-            if node.depth == self._depth_stop:
+            if node.depth == self._depth_stop and not node:
                 self._backup(node, -1)
-            if node:
-                self._backup(node, 0)
-                max_count += self._count_stop
+                continue
+            elif node.depth == self._depth_stop:
+                self._backup(node, 1)
                 yield self._path(node)
-            premolecules = node.premolecules
+                continue
+            premolecules = list(node.premolecules)
             for mol in premolecules:
                 self._pred[mol] = node
             self._succ[node] = set(premolecules)
@@ -88,7 +89,7 @@ class RetroTree(RetroTreeABC):
         while True:
             node = self._pred[node]
             try:
-                path.append(node.get_reaction)
+                path.append(node.reaction)
             except AttributeError:
                 return path
 

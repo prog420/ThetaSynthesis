@@ -8,21 +8,20 @@ from .source import not_available
 class Scroll(ScrollABC):
     @cached_property
     def premolecules(self) -> Tuple['Scroll', ...]:
-        # TODO; refactor and fix this
         """
         return new scrolls from that scroll
         """
         in_scroll = list(self._synthons)
         target = in_scroll.pop(0)
-        new_synthons_with_probs = zip(target.premolecules, target.probabilities)
         new_depth = self._depth + 1
-        scrolls = []
-        for pair in new_synthons_with_probs:
-            synthons, probability = pair
-            reaction = ReactionContainer(tuple(x.molecule for x in synthons), [target.molecule])
-            child_scroll = Scroll(in_scroll + self._filter(synthons), reaction, probability, new_depth)
-            scrolls.append(child_scroll)
-        return tuple(scrolls)
+        for gen, prob in zip(target.premolecules(), target.probabilities()):
+            mols = tuple(gen)
+            reaction = ReactionContainer(tuple(x.molecule for x in mols), [target.molecule])
+            child_scroll = Scroll(synthons=tuple(in_scroll + list(self._filter(mols))),
+                                  reaction=reaction,
+                                  probability=prob,
+                                  depth=new_depth)
+            yield child_scroll
 
     @property
     def worse_value(self):
@@ -32,8 +31,8 @@ class Scroll(ScrollABC):
         """
         return only commercially unavailable for molecules in input synthons
         """
-        comm_molecules = not_available([x.molecule for x in synthons])
-        return [x for x in synthons if x.molecule in comm_molecules]
+        comm_molecules = not_available((x.molecule for x in synthons))
+        return (x for x in synthons if x.molecule in comm_molecules)
 
 
 __all__ = ['Scroll']

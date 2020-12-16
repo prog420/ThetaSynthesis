@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from CGRtools.containers import MoleculeContainer
-from typing import Tuple
+from typing import Generator, Tuple
 
 
 class SynthonABC(ABC):
@@ -29,7 +29,7 @@ class SynthonABC(ABC):
         """
 
     @abstractmethod
-    def premolecules(self) -> Tuple[Tuple['SynthonABC', ...], ...]:
+    def premolecules(self) -> Generator[Generator["Synthon", None, None], None, None]:
         """
         return tuple of tuples of Synthons (from nn)
         """
