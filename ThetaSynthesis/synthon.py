@@ -12,6 +12,8 @@ from torch.nn import BCELoss
 from .abc import SynthonABC
 from .source import not_available, SimpleNet, TwoHeadedNet
 
+from random import choice
+
 if TYPE_CHECKING:
     from numpy import array
     from CGRtools.containers import MoleculeContainer
@@ -37,13 +39,12 @@ class Synthon(SynthonABC):
     def molecule(self) -> "MoleculeContainer":
         return self._molecule
 
-    def premolecules(self, top_n: int = 5):
-        for reactor in (reactors[idx] for idx, _ in self.__sorted_indices(top_n)):
-            for mol in reactor(self.molecule):
-                yield (type(self)(mol) for mol in mol.split())
+    def premolecules(self, top_n: int = 20):
+        return tuple(tuple(type(self)(mol) for mol in reactor(self.molecule) for mol in mol.split())
+                     for reactor in (reactors[idx] for idx, _ in self.__sorted_pairs[:top_n]))
 
-    def probabilities(self, top_n: int = 5):
-        return (prob for _, prob in self.__sorted_indices(top_n))
+    def probabilities(self, top_n: int = 20):
+        return tuple(prob for _, prob in self.__sorted_pairs[:top_n])
 
     @abstractmethod
     def value(self):
@@ -52,10 +53,13 @@ class Synthon(SynthonABC):
     def descriptor(self) -> "array":
         return from_numpy(morgan.transform([self.molecule])).float()
 
-    def __sorted_indices(self, top_n: int):
-        prediction = self.__neural_network()
-        top_indices = prediction.argsort()[::-1][:top_n]
-        return zip(top_indices, prediction[top_indices])
+    @cached_property
+    def __sorted_pairs(self):
+        probs = self.__neural_network()
+        indices = probs.argsort()[::-1]
+        return tuple((idx, prob)
+                     for idx in indices
+                     for prob in probs[indices])
 
     def __neural_network(self) -> "array":
         return net.predict(self.descriptor().unsqueeze(0)).squeeze()
@@ -64,7 +68,7 @@ class Synthon(SynthonABC):
 class CombineSynthon(Synthon):
     @cached_property
     def value(self):
-        return self._neural_network[1].item()
+        raise NotImplementedError
 
 
 class StupidSynthon(Synthon):
@@ -74,6 +78,7 @@ class StupidSynthon(Synthon):
 
 
 class SlowSynthon(StupidSynthon):
+    # TODO need pay attention to number of steps in rollout which tree already have made to this state
     @cached_property
     def value(self, roll_len: int = 10):
         """

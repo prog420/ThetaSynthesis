@@ -29,7 +29,7 @@ class SynthonABC(ABC):
         """
 
     @abstractmethod
-    def premolecules(self) -> Generator[Generator["Synthon", None, None], None, None]:
+    def premolecules(self) -> Tuple[Tuple["Synthon", None, None], None, None]:
         """
         return tuple of tuples of Synthons (from nn)
         """

@@ -12,7 +12,7 @@ class ScrollABC(ABC):
         self._depth = depth
         self._visit_count = 0
         self._total_action = 0.
-        self._value = min(self._synthons, key=lambda x: x.value)
+        self._value = min(x.value for x in self._synthons)
         self._probability = probability
 
     def __bool__(self):

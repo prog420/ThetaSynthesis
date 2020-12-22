@@ -23,9 +23,9 @@ class RetroTree(RetroTreeABC):
         return self._generator
 
     def __generator(self):
-        # FIXME on next step of tree molecule must have less atoms
         # FIXME delete terminal stop
         # FIXME fix cycling
+        # TODO if mol meet again in branch set terminal flag on this node
         max_count = self._count_stop
         while len(self._succ) < max_count:
             print(len(self._succ))
@@ -37,7 +37,7 @@ class RetroTree(RetroTreeABC):
                 self._backup(node, 1)
                 yield self._path(node)
                 continue
-            premolecules = list(node.premolecules)
+            premolecules = list(node.premolecules())
             for mol in premolecules:
                 self._pred[mol] = node
             self._succ[node] = set(premolecules)
@@ -75,7 +75,7 @@ class RetroTree(RetroTreeABC):
         if node is terminal then value = 0
         """
         parent = self.predecessor(scroll)
-        while parent:
+        while parent is not None:
             scroll.increase_total_action(value)
             scroll.increase_visit_count()
             scroll = parent
