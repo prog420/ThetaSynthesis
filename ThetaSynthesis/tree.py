@@ -1,3 +1,4 @@
+from collections import deque
 from math import sqrt
 from typing import Dict
 from .abc import RetroTreeABC
@@ -23,8 +24,6 @@ class RetroTree(RetroTreeABC):
         return self._generator
 
     def __generator(self):
-        # FIXME delete terminal stop
-        # FIXME fix cycling
         # TODO if mol meet again in branch set terminal flag on this node
         max_count = self._count_stop
         while len(self._succ) < max_count:
@@ -33,7 +32,7 @@ class RetroTree(RetroTreeABC):
             if node.depth == self._depth_stop and not node:
                 self._backup(node, -1)
                 continue
-            elif node.depth == self._depth_stop:
+            elif node:
                 self._backup(node, 1)
                 yield self._path(node)
                 continue
@@ -92,6 +91,20 @@ class RetroTree(RetroTreeABC):
                 path.append(node.reaction)
             except AttributeError:
                 return path
+
+    def dfs(self):
+        stack = deque([(self._target, self._target.depth)])
+        out = []
+        while stack:
+            node, depth = stack.popleft()
+            if not self.successors(node):
+                yield out
+            out = out[:depth]
+            out.append(node)
+
+            if self.successors(node):
+                succs = [(x, x.depth) for x in sorted(self.successors(node), key=lambda x: x.visit_count)]
+                stack.extendleft(succs)
 
 
 __all__ = ['RetroTree']

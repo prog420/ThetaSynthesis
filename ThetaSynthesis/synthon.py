@@ -39,15 +39,15 @@ class Synthon(SynthonABC):
     def molecule(self) -> "MoleculeContainer":
         return self._molecule
 
-    def premolecules(self, top_n: int = 20):
+    def premolecules(self, top_n: int = 10):
         return tuple(tuple(type(self)(mol) for mol in reactor(self.molecule) for mol in mol.split())
                      for reactor in (reactors[idx] for idx, _ in self.__sorted_pairs[:top_n]))
 
-    def probabilities(self, top_n: int = 20):
+    def probabilities(self, top_n: int = 10):
         return tuple(prob for _, prob in self.__sorted_pairs[:top_n])
 
     @abstractmethod
-    def value(self):
+    def value(self, **kwargs):
         ...
 
     def descriptor(self) -> "array":
@@ -67,25 +67,24 @@ class Synthon(SynthonABC):
 
 class CombineSynthon(Synthon):
     @cached_property
-    def value(self):
+    def value(self, **kwargs):
         raise NotImplementedError
 
 
 class StupidSynthon(Synthon):
     @property
-    def value(self):
+    def value(self, **kwargs):
         return 1
 
 
 class SlowSynthon(StupidSynthon):
-    # TODO need pay attention to number of steps in rollout which tree already have made to this state
-    @cached_property
-    def value(self, roll_len: int = 10):
+    def value(self, **kwargs):
         """
         value get from rollout function
+        :param **kwargs:
         """
         queue = deque([self])
-        for _ in range(roll_len):
+        for _ in range(kwargs['roll_len'] - kwargs['depth']):
             reactant = queue.popleft()
             queue.extend(i for x in reactant.premolecules(1) for i in x)
             if not queue:

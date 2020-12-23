@@ -17,7 +17,7 @@ class SynthonABC(ABC):
             return obj
 
     @abstractmethod
-    def value(self) -> float:
+    def value(self, depth: int) -> float:
         """
         value of molecule [-1; 1]
         """

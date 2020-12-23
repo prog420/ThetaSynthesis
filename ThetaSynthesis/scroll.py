@@ -25,7 +25,7 @@ class Scroll(ScrollABC):
 
     @cached_property
     def worse_value(self):
-        return min([x.value for x in self._synthons])
+        return min([x.value(roll_len=10, depth=self.depth) for x in self._synthons])
 
     def _filter(self, synthons):
         """

@@ -12,7 +12,7 @@ class ScrollABC(ABC):
         self._depth = depth
         self._visit_count = 0
         self._total_action = 0.
-        self._value = min(x.value for x in self._synthons)
+        self._value = self.worse_value
         self._probability = probability
 
     def __bool__(self):
@@ -21,7 +21,6 @@ class ScrollABC(ABC):
         """
         return not self._synthons
 
-    @property
     @abstractmethod
     def premolecules(self) -> Tuple['ScrollABC', ...]:
         """
