@@ -6,13 +6,11 @@ from typing import Tuple, List, Generator, TYPE_CHECKING
 
 from CGRtools import CGRReactor
 from MorganFingerprint import MorganFingerprint
-from torch import from_numpy
+from torch import from_numpy, sort
 from torch.nn import BCELoss
 
 from .abc import SynthonABC
 from .source import not_available, SimpleNet, TwoHeadedNet
-
-from random import choice
 
 if TYPE_CHECKING:
     from numpy import array
@@ -39,12 +37,12 @@ class Synthon(SynthonABC):
     def molecule(self) -> "MoleculeContainer":
         return self._molecule
 
-    def premolecules(self, top_n: int = 30):
+    def premolecules(self, top_n: int = 10):
         return tuple(tuple(type(self)(mol) for mol in reactor(self.molecule) for mol in mol.split())
-                     for reactor in (reactors[idx] for idx, _ in self.__sorted_pairs[:top_n]))
+                     for reactor in (reactors[idx] for idx in self.__sorted_pairs[1][:top_n]))
 
-    def probabilities(self, top_n: int = 30):
-        return tuple(prob for _, prob in self.__sorted_pairs[:top_n])
+    def probabilities(self, top_n: int = 10):
+        return tuple(prob for prob in self.__sorted_pairs[0][:top_n])
 
     @abstractmethod
     def value(self, **kwargs):
@@ -55,26 +53,22 @@ class Synthon(SynthonABC):
 
     @cached_property
     def __sorted_pairs(self):
-        probs = self.__neural_network()
-        indices = probs.argsort()[::-1]
-        return tuple((idx, prob)
-                     for idx in indices
-                     for prob in probs[indices])
+        probs = self._neural_network()[0].squeeze(0).squeeze(0)
+        values, indices = sort(probs, descending=True)
+        return values, indices
 
-    def __neural_network(self) -> "array":
-        return net.predict(self.descriptor().unsqueeze(0)).squeeze()
+    def _neural_network(self):
+        return net.forward(self.descriptor().unsqueeze(0))
 
 
 class CombineSynthon(Synthon):
-    @cached_property
     def value(self, **kwargs):
-        raise NotImplementedError
+        return super()._neural_network()[1].squeeze(0).squeeze(0).item()
 
 
 class StupidSynthon(Synthon):
-    @property
     def value(self, **kwargs):
-        return 1
+        return 1.
 
 
 class SlowSynthon(StupidSynthon):
@@ -86,10 +80,10 @@ class SlowSynthon(StupidSynthon):
         queue = deque([self])
         for _ in range(kwargs['roll_len'] - kwargs['depth']):
             reactant = queue.popleft()
-            queue.extend(i for x in reactant.premolecules(1) for i in x)
+            queue.extend(i for x in not_available(reactant.premolecules(1)) for i in x)
             if not queue:
-                return 1
-        return -1
+                return 1.
+        return 0.
 
 
 __all__ = ['Synthon', 'CombineSynthon', 'SlowSynthon', 'StupidSynthon']
