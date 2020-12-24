@@ -1,12 +1,19 @@
 from abc import abstractmethod, ABC
+from functools import cached_property
 from CGRtools.containers import ReactionContainer
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Set, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from CGRtools.containers import MoleculeContainer
 
 
 class ScrollABC(ABC):
     __slots__ = ('_synthons', '_reaction', '_depth', '_visit_count', '_value', '_total_action', '_probability', '__dict__')
 
-    def __init__(self, synthons, reaction: Optional[ReactionContainer], probability: float, depth: int):
+    def __init__(self, synthons, reaction: Optional[ReactionContainer], probability: float, depth: int,
+                 parents: Optional[Set["MoleculeContainer"]] = None):
+        if parents is None:
+            parents = set()
         self._synthons = synthons
         self._reaction = reaction
         self._depth = depth
@@ -14,12 +21,17 @@ class ScrollABC(ABC):
         self._total_action = 0.
         self._value = self.worse_value
         self._probability = probability
+        self._parents = parents
 
     def __bool__(self):
         """
         True if a node is terminal
         """
-        return not self._synthons
+        return not self._synthons or bool(self._meet_again)
+
+    @property
+    def _meet_again(self):
+        return {x.molecule for x in self._synthons} & self._parents
 
     @abstractmethod
     def premolecules(self) -> Tuple['ScrollABC', ...]:
@@ -34,7 +46,7 @@ class ScrollABC(ABC):
         worse value from all synthons in the scroll
         """
 
-    @property
+    @cached_property
     def mean_action(self):
         if not self._visit_count:
             return 0.

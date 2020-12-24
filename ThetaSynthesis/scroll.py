@@ -1,4 +1,4 @@
-from CGRtools.containers import MoleculeContainer, ReactionContainer
+from CGRtools.containers import ReactionContainer
 from functools import cached_property
 from typing import Tuple
 from .abc import ScrollABC
@@ -7,6 +7,7 @@ from .source import not_available
 
 class Scroll(ScrollABC):
     def premolecules(self) -> Tuple['Scroll', ...]:
+        # TODO validate result of premolecules method
         """
         return new scrolls from that scroll
         """
@@ -15,11 +16,13 @@ class Scroll(ScrollABC):
         new_depth = self._depth + 1
         scrolls = []
         for tpl, prob in zip(target.premolecules(), target.probabilities()):
-            reaction = ReactionContainer(tuple(x.molecule for x in tpl), [target.molecule])
+            curr_target = target.molecule
+            reaction = ReactionContainer(tuple(x.molecule for x in tpl), [curr_target])
             child_scroll = Scroll(synthons=tuple(in_scroll + list(self._filter(tpl))),
                                   reaction=reaction,
                                   probability=prob,
-                                  depth=new_depth)
+                                  depth=new_depth,
+                                  parents=self._parents | {curr_target})
             scrolls.append(child_scroll)
         return tuple(scrolls)
 

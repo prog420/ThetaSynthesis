@@ -4,10 +4,11 @@ from pickle import dump
 
 
 def main():
-    target = smiles('CC(C)Cc1ccc(cc1)[C@@H](C)C(=O)O')
+    target = smiles('CCCC(C(=O)C1=CC=CC=C1)N2CCCC2')
+    target.canonicalize()
 
     tree = RetroTree(target=target, class_name=SlowSynthon, stop_conditions={'depth_count': 10,
-                                                                             'step_count': 2000, })
+                                                                             'step_count': 1000, })
 
     a = list(tree)
     paths = [tuple(react for node in x if (react := node.reaction)) for n, x in enumerate(tree.dfs()) if n < 50]

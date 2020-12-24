@@ -39,11 +39,11 @@ class Synthon(SynthonABC):
     def molecule(self) -> "MoleculeContainer":
         return self._molecule
 
-    def premolecules(self, top_n: int = 10):
+    def premolecules(self, top_n: int = 30):
         return tuple(tuple(type(self)(mol) for mol in reactor(self.molecule) for mol in mol.split())
                      for reactor in (reactors[idx] for idx, _ in self.__sorted_pairs[:top_n]))
 
-    def probabilities(self, top_n: int = 10):
+    def probabilities(self, top_n: int = 30):
         return tuple(prob for _, prob in self.__sorted_pairs[:top_n])
 
     @abstractmethod
@@ -89,7 +89,7 @@ class SlowSynthon(StupidSynthon):
             queue.extend(i for x in reactant.premolecules(1) for i in x)
             if not queue:
                 return 1
-        return 0
+        return -1
 
 
 __all__ = ['Synthon', 'CombineSynthon', 'SlowSynthon', 'StupidSynthon']
