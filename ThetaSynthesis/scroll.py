@@ -7,7 +7,6 @@ from .source import not_available
 
 class Scroll(ScrollABC):
     def premolecules(self) -> Tuple['Scroll', ...]:
-        # TODO validate result of premolecules method
         """
         return new scrolls from that scroll
         """
@@ -28,7 +27,7 @@ class Scroll(ScrollABC):
 
     @cached_property
     def worse_value(self):
-        return min([x.value(roll_len=10, depth=self.depth) for x in self._synthons]) if self._synthons else 1
+        return min(x.value(roll_len=10, depth=self.depth) for x in self._synthons) if self._synthons else 1.
 
     def _filter(self, synthons):
         """

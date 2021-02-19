@@ -2,30 +2,23 @@ from abc import abstractmethod
 from collections import deque
 from functools import cached_property
 from pickle import load
-from typing import Tuple, List, Generator, TYPE_CHECKING
+from typing import TYPE_CHECKING
 
 from CGRtools import CGRReactor
-from MorganFingerprint import MorganFingerprint
+from StructureFingerprint import LinearFingerprint
 from torch import from_numpy, sort
-from torch.nn import BCELoss
 
 from .abc import SynthonABC
-from .source import not_available, SimpleNet, TwoHeadedNet
+from .source import not_available, JustPolicyNet
 
 if TYPE_CHECKING:
-    from numpy import array
+    from torch import Tensor
     from CGRtools.containers import MoleculeContainer
 
-morgan = MorganFingerprint(length=4096, min_radius=2, max_radius=4, number_bit_pairs=4)
+morgan = LinearFingerprint(length=4096, min_radius=2, max_radius=4, number_bit_pairs=4)
 
-net = TwoHeadedNet(module=SimpleNet,
-                   criterion=BCELoss,
-                   device='cpu',
-                   module__int_size=4096,
-                   module__out_size=2272,
-                   module__hid_size=(2000,), )
-net.initialize()
-net.load_params(f_params='ThetaSynthesis/source/params/twohead_params.pkl')
+net = JustPolicyNet.load_from_checkpoint('ThetaSynthesis/source/net.ckpt')
+net.eval()
 
 with open('source files/rules_reverse.pickle', 'rb') as f:
     rules = load(f)
@@ -39,31 +32,30 @@ class Synthon(SynthonABC):
 
     def premolecules(self, top_n: int = 10):
         return tuple(tuple(type(self)(mol) for mol in reactor(self.molecule) for mol in mol.split())
-                     for reactor in (reactors[idx] for idx in self.__sorted_pairs[1][:top_n]))
+                     for reactor in (reactors[idx] for idx in self.__sorted[1][:top_n]))
 
     def probabilities(self, top_n: int = 10):
-        return tuple(prob for prob in self.__sorted_pairs[0][:top_n])
+        return tuple(prob for prob in self.__sorted[0][:top_n])
 
     @abstractmethod
     def value(self, **kwargs):
         ...
 
-    def descriptor(self) -> "array":
+    def _descriptor(self) -> "Tensor":
         return from_numpy(morgan.transform([self.molecule])).float()
 
-    @cached_property
-    def __sorted_pairs(self):
-        probs = self._neural_network()[0].squeeze(0).squeeze(0)
-        values, indices = sort(probs, descending=True)
-        return values, indices
+    def _predict(self):
+        return net.predict(self._descriptor())
 
-    def _neural_network(self):
-        return net.forward(self.descriptor().unsqueeze(0))
+    @cached_property
+    def __sorted(self):
+        sorted_, values = sort(self._predict(), descending=True)
+        return sorted_.squeeze(), values.squeeze()
 
 
 class CombineSynthon(Synthon):
     def value(self, **kwargs):
-        return super()._neural_network()[1].squeeze(0).squeeze(0).item()
+        return super()._predict()[1].item()
 
 
 class StupidSynthon(Synthon):
@@ -75,7 +67,6 @@ class SlowSynthon(StupidSynthon):
     def value(self, **kwargs):
         """
         value get from rollout function
-        :param **kwargs:
         """
         queue = deque([self])
         for _ in range(kwargs['roll_len'] - kwargs['depth']):

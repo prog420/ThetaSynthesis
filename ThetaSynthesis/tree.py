@@ -8,8 +8,8 @@ c_puct = 4
 
 
 class RetroTree(RetroTreeABC):
+    # TODO return positive and negative examples
     # TODO add partial_fit of tree
-    # TODO decrease amount of memory for working tree search
     def __init__(self, target, class_name, stop_conditions: Dict):
         self._target = Scroll(synthons=tuple([class_name(target)]), reaction=None, probability=1., depth=0)
         self._succ = {self._target: set()}

@@ -1,78 +1,138 @@
-from skorch.net import NeuralNet
-from torch.nn import Sequential, Linear, Sigmoid, ReLU, Module, Softmax, Tanh
-from torch.nn.init import kaiming_normal_, zeros_
+from pytorch_lightning import LightningModule
+from pytorch_lightning.metrics.functional import accuracy
+from torch import hstack
+from torch.nn import ReLU, Sigmoid, Linear, Sequential, LogSoftmax
+from torch.nn.functional import binary_cross_entropy, kl_div, mse_loss
+from torch.optim import Adam
 
 
-class Chem(Module):
-    def __init__(self, in_f, num_rules):
+class JustPolicyNet(LightningModule):
+    def __init__(self):
         super().__init__()
-        self.in_f = in_f
-        self.num_rules = num_rules
-        self.model_body = Sequential(
-            Linear(in_f, 4000),
-            ReLU(inplace=True),
-            Linear(4000, num_rules - 1)
-        )
-        self.rules_head = Sigmoid()
+        l1 = Linear(4096, 2000)
+        l2 = Linear(2000, 2272)
+
+        act = ReLU(inplace=True)
+
+        self.body = Sequential(l1, act, l2)
+        self.policy_head = Sigmoid()
+
+    def forward(self, x):
+        return self.policy_head(self.body(x))
+
+    def predict(self, x):
+        boo = self.forward(x) > 0.5
+        return boo.float()
+
+    def training_step(self, batch, batch_idx):
+        loss, ba = self._loss(batch, batch_idx)
+        self.log('loss', loss)
+        self.log('ba', ba, prog_bar=True)
+        return loss
+
+    def validation_step(self, batch, batch_idx):
+        loss, ba = self._loss(batch, batch_idx)
+        self.log('val_loss', loss)
+        self.log('val_ba', ba, prog_bar=True)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        loss, ba = self._loss(batch, batch_idx)
+        self.log('test_loss', loss)
+        self.log('test_ba', ba)
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = Adam(self.parameters(), lr=1e-3)
+        return optimizer
+
+    def _loss(self, batch, batch_idx):
+        x, y = batch
+        y_pred = self.policy_head(self.body(x))
+        loss = binary_cross_entropy(y_pred, y)
+
+        y_pred_ = (y_pred > 0.5).float()
+        ba = accuracy(y_pred_, y, class_reduction='macro')
+        return loss, ba
+
+
+class DoubleHeadedNet(JustPolicyNet):
+    def __init__(self):
+        super().__init__()
+
+        self.policy_net = JustPolicyNet.load_from_checkpoint('net.ckpt')
+
+        self.body = self.policy_net.body
+
+        self.policy_head = LogSoftmax()
 
         self.value_head = Sequential(
-            ReLU(),
-            Linear(num_rules - 1, 1000),
-            ReLU(inplace=True),
-            Linear(1000, 1),
-            Sigmoid()
+            Linear(2273, 1),
         )
 
     def forward(self, x):
-        x = self.model_body(x)
-        rules = self.rules_head(x)
-        values = self.value_head(x)
-        return rules, values
+        x_policy, x_value = x[:, :-1], x[:, -1]
+        body = self.body(x_policy)
 
+        policy = self.policy_head(body)
+        stack = hstack((body, x_value))
 
-class SimpleModel(Module):
-    def __init__(self, inp_num, out_num, hid_num):
-        super().__init__()
-        self.l1 = Linear(inp_num, hid_num)
-        kaiming_normal_(self.l1.weight)
-        zeros_(self.l1.bias)
-        self.activ = ReLU(inplace=True)
-        self.l2 = Linear(hid_num, out_num)
-        self.soft = Softmax()
+        value = self.value_head(stack)
+        return policy, value
 
-    def forward(self, x):
-        x = self.l1(x)
-        x = self.activ(x)
-        x = self.l2(x)
+    def predict(self, x):
+        return self.forward(x)
 
-        return x
+    def training_step(self, batch, batch_idx):
+        loss_policy, loss_value = self._losses(batch, batch_idx)
+        opt = self.optimizers()
 
+        self.manual_backward(loss_policy, opt, retain_graph=True)
+        self.manual_backward(loss_value, opt)
 
-class SimpleNet(Module):
-    def __init__(self, int_size, out_size, hid_size, activation=ReLU):
-        super().__init__()
-        sizes = (int_size, *hid_size, out_size)
-        for n, (i, j) in enumerate(zip(sizes, sizes[1:]), start=1):
-            l = Linear(i, j)
-            kaiming_normal_(l.weight)
-            zeros_(l.bias)
-            setattr(self, f'l{n}', l)
-        self.last = Linear(sizes[-1], 1)
-        self.__size = len(sizes) - 1
-        self.af = activation()
-        self.sg = Sigmoid()
-        self.th = Tanh()
+        self.log('loss_policy', loss_policy)
+        self.log('loss_value', loss_value)
 
-    def forward(self, x):
-        for n in range(1, self.__size):
-            x = getattr(self, f'l{n}')(x)
-            x = self.af(x)
-        x = getattr(self, f'l{self.__size}')(x)
-        return self.sg(x), self.th(self.last(x))
+        loss = loss_policy + loss_value
+        self.log('loss', loss)
+        return loss
 
+    def validation_step(self, batch, batch_idx):
+        loss_policy, loss_value = self._losses(batch, batch_idx)
 
-class TwoHeadedNet(NeuralNet):
-    def get_loss(self, y_pred, y_true, *args, **kwargs):
-        policy, value = y_pred
-        loss_policy = super().get_loss(policy, y_true, *args, **kwargs)
-        return loss_policy
+        self.log('val_loss_policy', loss_policy)
+        self.log('val_loss_value', loss_value)
+
+        loss = loss_policy + loss_value
+        self.log('val_loss', loss)
+        return loss
+
+    def test_step(self, batch, batch_idx):
+        loss_policy, loss_value = self._losses(batch, batch_idx)
+
+        self.log('test_loss_policy', loss_policy)
+        self.log('test_loss_value', loss_value)
+
+        loss = loss_policy + loss_value
+        self.log('test_loss', loss)
+        return loss
+
+    def configure_optimizers(self):
+        optimizer = Adam(self.parameters(), lr=3e-4)
+        return optimizer
+
+    def _losses(self, batch, batch_idx):
+        x, y = batch
+
+        finger, depth = x[:, :-1], x[:, -1].reshape(-1, 1)
+        y_policy, y_value = y[:, :-1], y[:, -1].reshape(-1, 1)
+
+        pred_policy = self.policy_net(finger)
+        stack = hstack((self.body(finger), depth))
+
+        pred_value = self.value_head(stack)
+
+        loss_policy = kl_div(pred_policy, y_policy, reduction='batchmean')
+        loss_value = mse_loss(pred_value, y_value)
+
+        return loss_policy, loss_value

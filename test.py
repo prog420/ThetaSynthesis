@@ -8,7 +8,7 @@ def main():
     target.canonicalize()
 
     tree = RetroTree(target=target, class_name=SlowSynthon, stop_conditions={'depth_count': 10,
-                                                                             'step_count': 1000, })
+                                                                             'step_count': 100, })
 
     a = list(tree)
     paths = [tuple(react for node in x if (react := node.reaction)) for n, x in enumerate(tree.dfs()) if n < 50]
