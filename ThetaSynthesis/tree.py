@@ -10,12 +10,13 @@ c_puct = 4
 class RetroTree(RetroTreeABC):
     # TODO return positive and negative examples
     # TODO add partial_fit of tree
-    def __init__(self, target, class_name, stop_conditions: Dict):
+    def __init__(self, target, class_name, stop_conditions: Dict, generate_false=False):
         self._target = Scroll(synthons=tuple([class_name(target)]), reaction=None, probability=1., depth=0)
         self._succ = {self._target: set()}
         self._pred = {self._target: None}
         self._depth_stop = stop_conditions['depth_count']
         self._count_stop = stop_conditions['step_count']
+        self._generate_false = generate_false
         self._generator = self.__generator()
 
     def __next__(self):
@@ -92,19 +93,19 @@ class RetroTree(RetroTreeABC):
             except AttributeError:
                 return path
 
-    def dfs(self):
+    def __worse_first(self):
         stack = deque([(self._target, self._target.depth)])
-        out = []
+        path = []
         while stack:
-            node, depth = stack.popleft()
-            if not self.successors(node):
-                yield out
-            out = out[:depth]
-            out.append(node)
-
-            if self.successors(node):
-                succs = [(x, x.depth) for x in sorted(self.successors(node), key=lambda x: x.visit_count)]
-                stack.extendleft(succs)
+            current, depth = stack.pop()
+            path = path[:depth]
+            path.append(current)
+            depth += 1
+            if current not in self._succ:
+                yield path
+            else:
+                succs = [(x, depth) for x in sorted(self._succ[current], key=lambda x: x.visit_count)]
+                stack.extend(succs)
 
 
 __all__ = ['RetroTree']
