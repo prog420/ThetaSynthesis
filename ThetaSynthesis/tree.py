@@ -1,22 +1,24 @@
-from collections import deque
 from math import sqrt
-from typing import Dict
+from typing import Dict, Optional
 from .abc import RetroTreeABC
 from . import Scroll, CombineSynthon
 
-c_puct = 4
+C_PUCT = 4
 
 
 class RetroTree(RetroTreeABC):
-    # TODO return positive and negative examples
-    # TODO add partial_fit of tree
-    def __init__(self, target, class_name, stop_conditions: Dict, generate_false=False):
+    def __init__(self, target, class_name=CombineSynthon, stop_conditions: Optional[Dict] = None):
         self._target = Scroll(synthons=tuple([class_name(target)]), reaction=None, probability=1., depth=0)
         self._succ = {self._target: set()}
         self._pred = {self._target: None}
-        self._depth_stop = stop_conditions['depth_count']
-        self._count_stop = stop_conditions['step_count']
-        self._generate_false = generate_false
+
+        if stop_conditions is None:
+            self._depth_stop = 10
+            self._count_stop = 10000
+        else:
+            self._depth_stop = stop_conditions['depth_count']
+            self._count_stop = stop_conditions['step_count']
+
         self._generator = self.__generator()
 
     def __next__(self):
@@ -42,13 +44,14 @@ class RetroTree(RetroTreeABC):
                 self._pred[mol] = node
             self._succ[node] = set(premolecules)
             self._backup(node, node.value)
+        raise StopIteration
 
     def _puct(self, scroll: Scroll) -> float:
         mean_action = scroll.mean_action
         visit_count = scroll.visit_count
         probability = scroll.probability
         summary_visit_count = sum(node.visit_count for node in self._comrades(scroll))
-        ucp = c_puct * probability * (sqrt(summary_visit_count) / (1 + visit_count))
+        ucp = C_PUCT * probability * (sqrt(summary_visit_count) / (1 + visit_count))
         return mean_action + ucp
 
     def _select(self) -> Scroll:
@@ -93,19 +96,8 @@ class RetroTree(RetroTreeABC):
             except AttributeError:
                 return path
 
-    def __worse_first(self):
-        stack = deque([(self._target, self._target.depth)])
-        path = []
-        while stack:
-            current, depth = stack.pop()
-            path = path[:depth]
-            path.append(current)
-            depth += 1
-            if current not in self._succ:
-                yield path
-            else:
-                succs = [(x, depth) for x in sorted(self._succ[current], key=lambda x: x.visit_count)]
-                stack.extend(succs)
+    def generate_negative(self):
+        yield from sorted({node for node in self._succ if not self._succ.get(node)}, key=lambda x: x.visit_count)
 
 
 __all__ = ['RetroTree']

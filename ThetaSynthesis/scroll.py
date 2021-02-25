@@ -31,7 +31,7 @@ class Scroll(ScrollABC):
 
     def _filter(self, synthons):
         """
-        return only commercially unavailable for molecules in input synthons
+        return only commercially unavailable molecules for molecules in input synthons
         """
         return tuple(x for x in synthons if x.molecule in not_available(x.molecule for x in synthons))
 

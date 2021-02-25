@@ -9,18 +9,19 @@ from StructureFingerprint import LinearFingerprint
 from torch import from_numpy, sort
 
 from .abc import SynthonABC
-from .source import not_available, JustPolicyNet
+from .source import not_available
+from . import DoubleHeadedNet, JustPolicyNet
 
 if TYPE_CHECKING:
     from torch import Tensor
     from CGRtools.containers import MoleculeContainer
 
-morgan = LinearFingerprint(length=4096, min_radius=2, max_radius=4, number_bit_pairs=4)
+fragmentor = LinearFingerprint(length=4096, min_radius=2, max_radius=4, number_bit_pairs=4)
 
 net = JustPolicyNet.load_from_checkpoint('ThetaSynthesis/source/net.ckpt')
 net.eval()
 
-with open('source files/rules_reverse.pickle', 'rb') as f:
+with open('.source/rules_reverse.pickle', 'rb') as f:
     rules = load(f)
 reactors = [CGRReactor(rule, delete_atoms=True) for rule in rules]
 
@@ -42,7 +43,7 @@ class Synthon(SynthonABC):
         ...
 
     def _descriptor(self) -> "Tensor":
-        return from_numpy(morgan.transform([self.molecule])).float()
+        return from_numpy(fragmentor.transform([self.molecule])).float()
 
     def _predict(self):
         return net.predict(self._descriptor())
