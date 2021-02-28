@@ -1,7 +1,8 @@
 from math import sqrt
 from typing import Dict, Optional
 from .abc import RetroTreeABC
-from . import Scroll, CombineSynthon
+from .scroll import Scroll
+from .synthon import CombineSynthon
 
 C_PUCT = 4
 
@@ -21,6 +22,9 @@ class RetroTree(RetroTreeABC):
 
         self._generator = self.__generator()
 
+        self._successful = set()
+        self._fitted = False
+
     def __next__(self):
         return next(self._generator)
 
@@ -30,13 +34,14 @@ class RetroTree(RetroTreeABC):
     def __generator(self):
         max_count = self._count_stop
         while len(self._succ) < max_count:
-            print(len(self._succ))
             node = self._select()
             if node.depth == self._depth_stop and not node:
                 self._backup(node, -1)
                 continue
             elif node:
                 self._backup(node, 1)
+                self._successful.add(node)
+
                 yield self._path(node)
                 continue
             premolecules = list(node.premolecules())
@@ -44,7 +49,11 @@ class RetroTree(RetroTreeABC):
                 self._pred[mol] = node
             self._succ[node] = set(premolecules)
             self._backup(node, node.value)
-        raise StopIteration
+        self._fitted = True
+
+    @property
+    def fitted(self):
+        return self._fitted
 
     def _puct(self, scroll: Scroll) -> float:
         mean_action = scroll.mean_action
@@ -91,13 +100,19 @@ class RetroTree(RetroTreeABC):
         path = [node.reaction]
         while True:
             node = self._pred[node]
-            try:
+            if node.reaction is not None:
                 path.append(node.reaction)
-            except AttributeError:
+            else:
                 return path
 
-    def generate_negative(self):
-        yield from sorted({node for node in self._succ if not self._succ.get(node)}, key=lambda x: x.visit_count)
+    def generate_examples(self):
+        if not self.fitted:
+            _ = list(self)
+        yield from (((node, 1), node.depth) for node in self._successful)
+        yield from (((node, -1), node.depth) for node in sorted(
+            {node for node in self._succ if not self._succ.get(node)},
+            key=lambda x: x.visit_count
+        ))
 
 
 __all__ = ['RetroTree']

@@ -8,10 +8,11 @@ if TYPE_CHECKING:
 
 
 class ScrollABC(ABC):
-    __slots__ = ('_synthons', '_reaction', '_depth', '_visit_count', '_value', '_total_action', '_probability', '__dict__')
+    __slots__ = ('_synthons', '_reaction', '_depth', '_visit_count', '_value', '_total_action', '_probability',
+                 '_rule_number', '__dict__')
 
     def __init__(self, synthons, reaction: Optional[ReactionContainer], probability: float, depth: int,
-                 parents: Optional[Set["MoleculeContainer"]] = None):
+                 rule_number: Optional[int] = None, parents: Optional[Set["MoleculeContainer"]] = None):
         if parents is None:
             parents = set()
         self._synthons = synthons
@@ -22,6 +23,7 @@ class ScrollABC(ABC):
         self._value = self.worse_value
         self._probability = probability
         self._parents = parents
+        self._rule_number = rule_number
 
     def __bool__(self):
         """
@@ -45,6 +47,10 @@ class ScrollABC(ABC):
         """
         worse value from all synthons in the scroll
         """
+
+    @property
+    def target(self):
+        return self._synthons[0]
 
     @cached_property
     def mean_action(self):

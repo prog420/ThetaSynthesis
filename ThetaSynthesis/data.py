@@ -12,10 +12,9 @@ if TYPE_CHECKING:
 
 
 class RetroTreeDataModule(LightningDataModule):
-    # TODO return positive and negative examples
-    # TODO add partial_fit of tree
     def prepare_data(self, *args, **kwargs):
-        pass
+        for example in self.__collect_from_tree(kwargs['x']):
+            ...
 
     def setup(self, stage: Optional[str] = None):
         pass
@@ -33,14 +32,10 @@ class RetroTreeDataModule(LightningDataModule):
         pass
 
     @staticmethod
-    def __collect_from_tree(x: Iterable[MoleculeContainer, ]):
-        positives = []
-        negatives = []
+    def __collect_from_tree(x):
         for mol in x:
             tree = RetroTree(mol)
-            positives.extend(set(sum(tree, [])))
-            negatives.extend(tree.generate_negative())
-        return positives, negatives
+            yield from tree.generate_examples()
 
 
 __all__ = ['RetroTreeDataModule']

@@ -1,6 +1,6 @@
 import pickle
 
-with open('source files/new_bb.pickle', 'rb') as f:
+with open('ThetaSynthesis/source/bb.pickle', 'rb') as f:
     blocks = pickle.load(f)
 
 

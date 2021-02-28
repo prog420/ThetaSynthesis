@@ -14,13 +14,16 @@ class Scroll(ScrollABC):
         target = in_scroll.pop(0)
         new_depth = self._depth + 1
         scrolls = []
-        for tpl, prob in zip(target.premolecules(), target.probabilities()):
+        for (tpl, idx), prob in zip(target.premolecules(), target.probabilities()):
+            if not tpl:
+                continue
             curr_target = target.molecule
             reaction = ReactionContainer(tuple(x.molecule for x in tpl), [curr_target])
             child_scroll = Scroll(synthons=tuple(in_scroll + list(self._filter(tpl))),
                                   reaction=reaction,
                                   probability=prob,
                                   depth=new_depth,
+                                  rule_number=idx,
                                   parents=self._parents | {curr_target})
             scrolls.append(child_scroll)
         return tuple(scrolls)

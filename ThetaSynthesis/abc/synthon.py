@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from CGRtools.containers import MoleculeContainer
-from typing import Generator, Tuple
+from typing import Tuple
 
 
 class SynthonABC(ABC):
@@ -25,13 +25,13 @@ class SynthonABC(ABC):
     @abstractmethod
     def probabilities(self) -> Tuple[float, ...]:
         """
-        vector of probabilities with len == premolecules
+        Yield a tuple with sorted probabilities for each rules
         """
 
     @abstractmethod
     def premolecules(self) -> Tuple[Tuple["Synthon", None, None], None, None]:
         """
-        return tuple of tuples of Synthons (from nn)
+        Yield tuple with tuples of Synthon objects and number of rule
         """
 
 
