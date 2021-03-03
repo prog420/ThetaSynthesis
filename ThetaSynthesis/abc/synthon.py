@@ -5,14 +5,14 @@ from typing import Tuple
 
 class SynthonABC(ABC):
     __slots__ = ('_molecule', '__dict__')
-    __singletone__ = {}
+    __singleton__ = {}
 
     def __new__(cls, molecule: MoleculeContainer):
-        if molecule in cls.__singletone__:
-            return cls.__singletone__[molecule]
+        if molecule in cls.__singleton__:
+            return cls.__singleton__[molecule]
         else:
             obj = object.__new__(cls)
-            cls.__singletone__[molecule] = obj
+            cls.__singleton__[molecule] = obj
             obj._molecule = molecule
             return obj
 

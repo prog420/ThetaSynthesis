@@ -31,6 +31,9 @@ class ScrollABC(ABC):
         """
         return not self._synthons or bool(self._meet_again)
 
+    def __len__(self):
+        return len(self._synthons)
+
     @property
     def _meet_again(self):
         return {x.molecule for x in self._synthons} & self._parents
@@ -83,6 +86,10 @@ class ScrollABC(ABC):
     @property
     def probability(self):
         return self._probability
+
+    @property
+    def rule_number(self):
+        return self._rule_number
 
 
 __all__ = ['ScrollABC']

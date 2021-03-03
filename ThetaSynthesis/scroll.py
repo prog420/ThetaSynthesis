@@ -30,13 +30,13 @@ class Scroll(ScrollABC):
 
     @cached_property
     def worse_value(self):
-        return min(x.value(roll_len=10, depth=self.depth) for x in self._synthons) if self._synthons else 1.
+        return min(x.value(roll_len=10, depth=self.depth) for x in self._synthons) if len(self) else 1.
 
     def _filter(self, synthons):
         """
         return only commercially unavailable molecules for molecules in input synthons
         """
-        return tuple(x for x in synthons if x.molecule in not_available(x.molecule for x in synthons))
+        return tuple(not_available(synthons))
 
 
 __all__ = ['Scroll']

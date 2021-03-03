@@ -1,5 +1,10 @@
+from itertools import islice
 from math import sqrt
 from typing import Dict, Optional
+
+from torch import zeros
+from torch.nn.functional import softmax
+
 from .abc import RetroTreeABC
 from .scroll import Scroll
 from .synthon import CombineSynthon
@@ -22,7 +27,6 @@ class RetroTree(RetroTreeABC):
 
         self._generator = self.__generator()
 
-        self._successful = set()
         self._fitted = False
 
     def __next__(self):
@@ -31,29 +35,26 @@ class RetroTree(RetroTreeABC):
     def __iter__(self):
         return self._generator
 
-    def __generator(self):
-        max_count = self._count_stop
-        while len(self._succ) < max_count:
-            node = self._select()
-            if node.depth == self._depth_stop and not node:
-                self._backup(node, -1)
-                continue
-            elif node:
-                self._backup(node, 1)
-                self._successful.add(node)
-
-                yield self._path(node)
-                continue
-            premolecules = list(node.premolecules())
-            for mol in premolecules:
-                self._pred[mol] = node
-            self._succ[node] = set(premolecules)
-            self._backup(node, node.value)
-        self._fitted = True
-
     @property
     def fitted(self):
         return self._fitted
+
+    def generate_examples(self, positive=None, negative=None):
+        if not self.fitted:
+            _ = list(self)
+        terminals = {node for node in self._succ if node or self._succ.get(node) is None}
+        successful = {node for node in terminals if not len(node)}
+        not_successful = terminals - successful
+
+        yield from (
+            (node.target.descriptor(), (self.__distribution(node), node.depth, 1))
+            for node in islice(successful, 0, positive)
+        )
+
+        yield from (
+            (node.target.descriptor(), (self.__distribution(node), node.depth, -1)) for node
+            in sorted(islice(not_successful, 0, negative), key=lambda x: x.visit_count)
+        )
 
     def _puct(self, scroll: Scroll) -> float:
         mean_action = scroll.mean_action
@@ -105,14 +106,30 @@ class RetroTree(RetroTreeABC):
             else:
                 return path
 
-    def generate_examples(self):
-        if not self.fitted:
-            _ = list(self)
-        yield from (((node, 1), node.depth) for node in self._successful)
-        yield from (((node, -1), node.depth) for node in sorted(
-            {node for node in self._succ if not self._succ.get(node)},
-            key=lambda x: x.visit_count
-        ))
+    def __generator(self):
+        max_count = self._count_stop
+        while len(self._succ) < max_count:
+            print(len(self._succ))
+            node = self._select()
+            if not len(node):
+                self._backup(node, 1)
+                yield self._path(node)
+                continue
+            elif node.depth == self._depth_stop:
+                self._backup(node, -1)
+                continue
+            premolecules = list(node.premolecules())
+            for mol in premolecules:
+                self._pred[mol] = node
+            self._succ[node] = set(premolecules)
+            self._backup(node, node.value)
+        self._fitted = True
+
+    def __distribution(self, node: Scroll):
+        vect = zeros((2272, ))
+        for child in self.successors(node):
+            vect[child.rule_number] = child.visit_count
+        return softmax(vect)
 
 
 __all__ = ['RetroTree']

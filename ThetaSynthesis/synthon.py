@@ -31,11 +31,20 @@ class Synthon(SynthonABC):
     def molecule(self) -> "MoleculeContainer":
         return self._molecule
 
-    def premolecules(self, top_n: int = 10) -> Generator[Tuple[Tuple, ], None, None]:
-        yield from (tuple(
-            [[type(self)(each) for mol in reactors[idx](self.molecule) for each in mol.split()], idx.item()]
+    def __str__(self):
+        return str(self.molecule)
+
+    def __len__(self):
+        return len(self.molecule)
+
+    def premolecules(self, top_n: int = 100) -> Generator[Tuple[Tuple, float], None, None]:
+        yield from (
+            tuple(
+                [[type(self)(each) for each in mol.split()], idx.item()]
+            )
+            for idx in self.__sorted[1][:top_n]
+            for mol in reactors[(idx.item())](self.molecule)
         )
-            for idx in self.__sorted[1][:top_n])
 
     def probabilities(self, top_n: int = 10) -> Generator[float, None, None]:
         yield from (prob.item() for prob in self.__sorted[0][:top_n])
@@ -72,12 +81,15 @@ class SlowSynthon(StupidSynthon):
         value get from rollout function
         """
         queue = deque([self])
-        for _ in range(kwargs['roll_len'] - kwargs['depth']):
+        for step in range(kwargs['roll_len'] - kwargs['depth']):
             reactant = queue.popleft()
-            queue.extend(i for x in not_available(reactant.premolecules(1)) for i in x)
+            for synthons, idx in reactant.premolecules():
+                if synthons:
+                    queue.extend(x for x in not_available(synthons))
+                    break
             if not queue:
-                return 1.
-        return 0.
+                return 1. ** step
+        return -1.
 
 
 __all__ = ['Synthon', 'CombineSynthon', 'SlowSynthon', 'StupidSynthon']
