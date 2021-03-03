@@ -88,7 +88,7 @@ class SlowSynthon(StupidSynthon):
                     queue.extend(x for x in not_available(synthons))
                     break
             if not queue:
-                return 1. ** step
+                return .9 ** step
         return -1.
 
 

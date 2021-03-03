@@ -4,7 +4,7 @@ from pickle import dump
 
 
 def main():
-    target = smiles('O=C(O)\C=C(\C=C\C=C(\C=C\c1c(cc(OC)c(c1C)C)C)C)C')
+    target = smiles('CC(NC)CC1=CC=C(OCO2)C2=C1')
     target.canonicalize()
 
     tree = RetroTree(target=target, class_name=SlowSynthon, stop_conditions={'depth_count': 10,
