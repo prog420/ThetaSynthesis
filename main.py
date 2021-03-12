@@ -1,23 +1,18 @@
-from CGRtools import smiles
-from ThetaSynthesis import RetroTree, SlowSynthon
-from pickle import dump
+from CGRtools import smiles, RDFWrite
+from ThetaSynthesis import RetroTree
+from ThetaSynthesis.synthon import DummySynthon
 
 
-def main():
-    target = smiles('CC(NC)CC1=CC=C(OCO2)C2=C1')
+def main(target, output, synthon):
+    target = smiles(target)
     target.canonicalize()
 
-    tree = RetroTree(target=target, class_name=SlowSynthon, stop_conditions={'depth_count': 10,
-                                                                             'step_count': 10000, })
+    tree = RetroTree(target, synthon_class=synthon)
 
-    a = list(tree)
-    with open('test.pickle', 'wb') as f:
-        dump(a, f)
-
-    c = list(tree.generate_examples())
-    with open('examples.pickle', 'wb') as f:
-        dump(c, f)
+    with RDFWrite(output) as f:
+        for r in next(tree):
+            f.write(r)
 
 
 if __name__ == '__main__':
-    main()
+    main('CC(=O)NC1=CC=C(O)C=C1', 'acetaminophen.rdf', DummySynthon)
