@@ -79,7 +79,19 @@ class RetroTree(RetroTreeABC):
 
         :param node: building block node
         """
-        # todo: implement
+        preds = self._pred
+        nodes = [node]
+        while node:
+            node = preds[node]
+            nodes.append(node)
+
+        scrolls = self._nodes
+        tmp = []
+        for node in reversed(nodes):
+            node = scrolls[node]
+            tmp.append(node.molecules)
+        tmp = [ReactionContainer(after[len(before) - 1:], before[:1]) for before, after in zip(tmp, tmp[1:])]
+        return tuple(reversed(tmp))
 
     def __next__(self):
         while self._free_node <= self._size:

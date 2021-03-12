@@ -52,8 +52,8 @@ class Scroll(ScrollABC):
         return min(float(x) for x in self._synthons)
 
     @property
-    def synthons(self):
-        return self._synthons
+    def molecules(self):
+        return tuple(x.molecule for x in self._synthons)
 
     def __next__(self) -> 'Scroll':
         """
@@ -67,9 +67,6 @@ class Scroll(ScrollABC):
             history.update(new)
             return type(self)((*self._others, *new), history)
         raise StopIteration('End of possible reactions has reached')
-
-    def __iter__(self):
-        return self
 
 
 __all__ = ['Scroll']

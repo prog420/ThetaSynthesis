@@ -63,5 +63,9 @@ class SynthonABC(metaclass=SynthonABCMeta):
     def __eq__(self, other: 'SynthonABC'):
         return self._molecule == other._molecule
 
+    @property
+    def molecule(self) -> MoleculeContainer:
+        return self._molecule.copy()
+
 
 __all__ = ['SynthonABC']

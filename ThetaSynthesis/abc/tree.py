@@ -18,7 +18,7 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from abc import ABC, abstractmethod
-from CGRtools import ReactionContainer
+from CGRtools import MoleculeContainer, ReactionContainer
 from typing import Dict, Set, Tuple
 
 
@@ -28,12 +28,20 @@ class ScrollABC(ABC):
     """
     __slots__ = ()
 
-    @abstractmethod
     def __iter__(self):
-        ...
+        return self
 
     @abstractmethod
     def __next__(self) -> 'ScrollABC':
+        ...
+
+    @abstractmethod
+    def __bool__(self):
+        ...
+
+    @property
+    @abstractmethod
+    def molecules(self) -> Tuple[MoleculeContainer, ...]:
         ...
 
 
@@ -52,7 +60,7 @@ class RetroTreeABC(ABC):
     @abstractmethod
     def __next__(self) -> Tuple[ReactionContainer, ...]:
         """
-        Yield a path from target molecule to building blocks.
+        Yield a path from building blocks to target molecule.
         """
 
     def __iter__(self):
