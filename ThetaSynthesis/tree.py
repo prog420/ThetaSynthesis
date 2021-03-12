@@ -17,8 +17,8 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from CGRtools import MoleculeContainer
-from typing import Type
+from CGRtools import MoleculeContainer, ReactionContainer
+from typing import Type, Tuple
 from .abc import RetroTreeABC, SynthonABC
 from .scroll import Scroll
 
@@ -26,34 +26,79 @@ from .scroll import Scroll
 class RetroTree(RetroTreeABC):
     __slots__ = ()
 
-    def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC], depth=10, size=10000):
+    def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC], depth: int = 10, size: int = 1e4):
+        """
+        :param target: target molecule
+        :param depth: max path to building blocks
+        :param size: max size of tree
+        """
         synthon = synthon_class(target)
-        super().__init__(Scroll((synthon,), {synthon}), depth=depth, size=size)
+        self._depth = depth
+        self._size = size
+        super().__init__(Scroll((synthon,), {synthon}))
 
-    def _add(self, pred: int, node: Scroll):
+    def _add(self, node: int, scroll: Scroll):
         """
         Add new node to tree.
         """
-        succ = self._free_node
-        self._nodes[succ] = node
-        self._pred[succ] = pred
-        self._succ[pred].add(succ)
-        self._succ[succ] = set()
-        self._visits[succ] = 1
+        new_node = self._free_node
+        self._nodes[new_node] = scroll
+        self._pred[new_node] = node
+        self._succ[node].add(new_node)
+        self._succ[new_node] = set()
+        self._visits[new_node] = 0
         self._free_node += 1
 
-    def _update(self, pred: int):
+    def _update(self, node: int):
         """
         Increment visits count in path from given node to root.
         """
         visits = self._visits
         preds = self._pred
-        while pred:
-            visits[pred] += 1
-            pred = preds[pred]
+        while node:
+            visits[node] += 1
+            node = preds[node]
+
+    def _expand(self, node: int):
+        """
+        Expand new node.
+        """
+        for scroll in self._nodes[node]:
+            self._add(node, scroll)
+
+    def _select(self, node: int) -> int:
+        """
+        Select preferred successor node based on views count and synthesisability.
+        """
+        # todo: implement.
+        # todo: raise IndexError then successors empty
+
+    def _prepare_path(self, node: int) -> Tuple[ReactionContainer, ...]:
+        """
+        Prepare reaction path
+
+        :param node: building block node
+        """
+        # todo: implement
 
     def __next__(self):
-        pass
+        while self._free_node <= self._size:
+            depth = 0
+            node = 1
+            while True:
+                if self._visits[node]:  # already expanded
+                    try:
+                        node = self._select(node)
+                    except IndexError:  # terminal non-building block node
+                        break
+                    depth += 1
+                elif self._nodes[node]:  # found path!
+                    self._update(node)  # this prevents expanding of bb node
+                    return self._prepare_path(node)
+                elif depth < self._depth:  # expand if depth limit not reached
+                    self._update(node)  # mark node as visited
+                    self._expand(node)
+                    break
 
 
 __all__ = ['RetroTree']

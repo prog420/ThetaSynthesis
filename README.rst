@@ -1,7 +1,7 @@
 ThetaSynthesis
 --------------
 
-Resrosynthesis analysis tool
+Retrosynthesis analysis tool
 
 
 API Example::
