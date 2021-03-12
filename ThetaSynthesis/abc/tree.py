@@ -1,20 +1,46 @@
 from abc import ABC, abstractmethod
+from CGRtools import MoleculeContainer, ReactionContainer
+from typing import Dict, Set, Tuple
+
+
+class ScrollABC(ABC):
+    """
+    Node of MCTS Tree
+    """
+    __slots__ = ()
 
 
 class RetroTreeABC(ABC):
-    __slots__ = ('_target', '_succ', '_pred', '_depth_stop', '_count_stop', '_terminal_count', '__dict__')
+    __slots__ = ('_target', '_succ', '_pred', '_nodes', '_depth', '_size')
 
     @abstractmethod
-    def __next__(self):
+    def __init__(self, target: MoleculeContainer, /, depth: int = 10, size: int = 10000):
         """
-        yield a path from target molecule to terminal node
+        :param target: target molecule
+        :param depth: max path to building blocks
+        :param size: max size of tree
+        """
+        self._succ: Dict[int, Set[int]]
+        self._pred: Dict[int, int]
+        self._nodes: Dict[int, ScrollABC]
+        self._target: ScrollABC
+        self._depth = depth
+        self._size = size
+
+    @abstractmethod
+    def __next__(self) -> Tuple[ReactionContainer, ...]:
+        """
+        Yield a path from target molecule to building blocks.
         """
 
-    def predecessor(self, node):
-        return self._pred[node]
+    def __iter__(self):
+        return self
 
-    def successors(self, node):
-        return self._succ.get(node)
+    @abstractmethod
+    def __len__(self):
+        """
+        Current size of tree
+        """
 
 
-__all__ = ['RetroTreeABC']
+__all__ = ['ScrollABC', 'RetroTreeABC']

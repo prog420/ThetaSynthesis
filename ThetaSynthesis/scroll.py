@@ -1,42 +1,53 @@
-from CGRtools.containers import ReactionContainer
-from functools import cached_property
-from typing import Tuple
-from .abc import ScrollABC
-from .source import not_available
+from typing import Tuple, Set
+from .abc import SynthonABC, ScrollABC
 
 
 class Scroll(ScrollABC):
-    def premolecules(self) -> Tuple['Scroll', ...]:
+    __slots__ = ('_synthons', '_current', '_history', '_expand', '_closures', '_others')
+
+    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], /):
+        self._synthons = synthons
+        self._current = synthons[0]
+        self._others = synthons[1:]
+        self._history = history
+        self._closures = set()  # expanded synthons available in history
+        self._expand = iter(synthons[0])
+
+    def __bool__(self):
         """
-        return new scrolls from that scroll
+        Is terminal state. All synthons is building blocks
         """
-        in_scroll = list(self._synthons)
-        target = in_scroll.pop(0)
-        new_depth = self._depth + 1
-        scrolls = []
-        for (tpl, idx), prob in zip(target.premolecules(), target.probabilities()):
-            if not tpl:
+        return all(self._synthons)
+
+    def __len__(self):
+        return len(self._synthons)
+
+    def __float__(self):
+        """
+        Worse value from all synthons in the scroll
+        """
+        return min(float(x) for x in self._synthons)
+
+    @property
+    def current(self):
+        return self._current
+
+    def __next__(self) -> 'Scroll':
+        """
+        Expand Tree.
+        """
+        history = self._history
+        for new in self._expand:
+            if not history.isdisjoint(new):
+                self._closures.add(new)
                 continue
-            curr_target = target.molecule
-            reaction = ReactionContainer(tuple(x.molecule for x in tpl), [curr_target])
-            child_scroll = Scroll(synthons=tuple(in_scroll + list(self._filter(tpl))),
-                                  reaction=reaction,
-                                  probability=prob,
-                                  depth=new_depth,
-                                  rule_number=idx,
-                                  parents=self._parents | {curr_target})
-            scrolls.append(child_scroll)
-        return tuple(scrolls)
+            history = self._history.copy()
+            history.update(new)
+            return type(self)((*self._others, *new), history)
+        raise StopIteration('End of possible reactions has reached')
 
-    @cached_property
-    def worse_value(self):
-        return min(x.value(roll_len=10, depth=self.depth) for x in self._synthons) if len(self) else 1.
-
-    def _filter(self, synthons):
-        """
-        return only commercially unavailable molecules for molecules in input synthons
-        """
-        return tuple(not_available(synthons))
+    def __iter__(self):
+        return self
 
 
 __all__ = ['Scroll']
