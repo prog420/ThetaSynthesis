@@ -1,38 +1,48 @@
-from abc import ABC, abstractmethod
-from CGRtools.containers import MoleculeContainer
-from typing import Tuple
+from abc import ABCMeta, abstractmethod
+from CGRtools import MoleculeContainer
+from typing import Tuple, Iterator
 
 
-class SynthonABC(ABC):
-    __slots__ = ('_molecule', '__dict__')
-    __singleton__ = {}
+class SynthonABCMeta(ABCMeta):
+    __singletons__ = {}
 
-    def __new__(cls, molecule: MoleculeContainer):
-        if molecule in cls.__singleton__:
-            return cls.__singleton__[molecule]
-        else:
-            obj = object.__new__(cls)
-            cls.__singleton__[molecule] = obj
-            obj._molecule = molecule
-            return obj
+    def __call__(cls, molecule: MoleculeContainer):
+        try:
+            return cls.__singletons__[molecule]
+        except KeyError:
+            cls.__singletons__[molecule] = st = super().__call__(molecule)
+            return st
 
-    @abstractmethod
-    def value(self, depth: int) -> float:
-        """
-        value of molecule [-1; 1]
-        """
+
+class SynthonABC(metaclass=SynthonABCMeta):
+    __slots__ = ('_molecule',)
+
+    def __init__(self, molecule: MoleculeContainer, /):
+        self._molecule = molecule
 
     @abstractmethod
-    def probabilities(self) -> Tuple[float, ...]:
+    def __iter__(self) -> Iterator[Tuple['SynthonABC', ...]]:
         """
-        Yield a tuple with sorted probabilities for each rules
+        Generator of precursors synthons.
         """
 
     @abstractmethod
-    def premolecules(self) -> Tuple[Tuple["Synthon", None, None], None, None]:
+    def __bool__(self):
         """
-        Yield tuple with tuples of Synthon objects and number of rule
+        Is building block.
         """
+
+    @abstractmethod
+    def __float__(self):
+        """
+        Value of synthesisability.
+        """
+
+    def __hash__(self):
+        return hash(self._molecule)
+
+    def __eq__(self, other: 'SynthonABC'):
+        return self._molecule == other._molecule
 
 
 __all__ = ['SynthonABC']
