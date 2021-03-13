@@ -38,10 +38,10 @@ pre_data = {
     'ON=C(C)c1ccc(O)cc1': [('O=C(C)c1ccc(O)cc1', '[Si](C(C)(C)C)(Oc1ccc(C(=NO)C)cc1)(C)C',
                             'c1(c(ccc(C(=NO)C)c1)O)N'), 1.],
     'c1(c(ccc(C(=NO)C)c1)O)N': [('c1(c(cc(C(=NO)C)cc1)N)OCOC', ), -.2],
-    'c1(c(cc(C(=NO)C)cc1)N)OCOC': [('c1(c([N+](=O)[O-])cc(C(=NO)C)cc1)OCOC', ), -.6],
-    'c1(c([N+](=O)[O-])cc(C(=NO)C)cc1)OCOC': [(), -1.],
+    'c1(c(cc(C(=NO)C)cc1)N)OCOC': [(), -1.],
     'O=C(C)c1ccc(O)cc1': [('Oc1ccccc1', '[Si](C(C)(C)C)(Oc1ccc(C(=O)C)cc1)(C)C'), 1.],
     '[Si](C(C)(C)C)(Oc1ccc(C(=O)C)cc1)(C)C': [(), -1.],
+    '[Si](C(C)(C)C)(Oc1ccc(C(=NO)C)cc1)(C)C': [(), -1.],
 }
 
 
@@ -50,14 +50,14 @@ class DummySynthon(SynthonABC):
         super().__init__(molecule)
 
     def __iter__(self):
-        for mol in data[self._molecule][0]:
+        for mol in data[self.molecule][0]:
             yield type(self)(mol)
 
     def __bool__(self):
-        return self._molecule in building_blocks
+        return self.molecule in building_blocks
 
     def __float__(self):
-        return data[self._molecule][1]
+        return data[self.molecule][1]
 
 
 building_blocks = {smiles('Oc1ccccc1')}
@@ -68,10 +68,12 @@ def convert(dct):
     for k, (mols, value) in dct.items():
         k = smiles(k)
         k.canonicalize()
+        new_mols = []
         for mol in mols:
-            mol = smiles(mol)
-            mol.canonicalize()
-        out[k] = [mols, value]
+            new_mol = smiles(mol)
+            new_mol.canonicalize()
+            new_mols.append(new_mol)
+        out[k] = [tuple(new_mols), value]
     return out
 
 
