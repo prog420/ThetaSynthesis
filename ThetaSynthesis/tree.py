@@ -89,15 +89,13 @@ class RetroTree(RetroTreeABC):
         Polynomial upper confidence trees criterion for choosing node from tree
         """
         prob = self._probabilities[node]
-
-        # sum all visit counts across child nodes of parent's for this node
-        sum_all_potential = sum(self._visits[x] for x in self._succ[self._pred[node]])
-
         visit = self._visits[node]
+
         # C_PUCT is a constant determining a level of exploration; can be from 1 to 6; 4 is more balanced value
-        u = self._c_puct * prob * (sum_all_potential ** .5 / (1 + visit))
+        u = self._c_puct * prob / (1 + visit)
+
         # Quotient of total action value of node and number of visit's
-        return self._total_actions[node] / self._visits[node] + u
+        return self._total_actions[node] / visit + u
 
     def _prepare_path(self, node: int) -> Tuple[ReactionContainer, ...]:
         """
