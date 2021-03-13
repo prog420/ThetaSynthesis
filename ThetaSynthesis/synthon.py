@@ -52,8 +52,8 @@ class DummySynthon(SynthonABC):
         super().__init__(molecule)
 
     def __iter__(self):
-        for mol in data[self.molecule][0]:
-            yield tuple(type(self)(m) for m in mol)
+        for prob, mol in data[self.molecule][0]:
+            yield prob, tuple(type(self)(m) for m in mol)
 
     def __bool__(self):
         return self.molecule in building_blocks

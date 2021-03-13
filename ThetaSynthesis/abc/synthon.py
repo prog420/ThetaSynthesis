@@ -40,9 +40,11 @@ class SynthonABC(metaclass=SynthonABCMeta):
         self._molecule = molecule
 
     @abstractmethod
-    def __iter__(self) -> Iterator[Tuple['SynthonABC', ...]]:
+    def __iter__(self) -> Iterator[Tuple[float, Tuple['SynthonABC', ...]]]:
         """
-        Generator of precursors synthons.
+        Generator of precursors synthons. Ordered by preference of reactions.
+
+        :return: Pairs of reaction value and tuple of synthons.
         """
 
     @abstractmethod
