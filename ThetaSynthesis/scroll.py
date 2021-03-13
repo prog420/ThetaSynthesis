@@ -18,7 +18,8 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from typing import Tuple, Set
-from .abc import SynthonABC, ScrollABC
+from .abc import ScrollABC
+from .synthon.abc import SynthonABC
 
 
 class Scroll(ScrollABC):

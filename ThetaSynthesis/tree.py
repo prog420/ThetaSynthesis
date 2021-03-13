@@ -20,8 +20,9 @@
 from CGRtools import MoleculeContainer, ReactionContainer
 from tqdm import tqdm
 from typing import Type, Tuple
-from .abc import RetroTreeABC, SynthonABC
+from .abc import RetroTreeABC
 from .scroll import Scroll
+from .synthon.abc import SynthonABC
 
 
 class RetroTree(RetroTreeABC):
