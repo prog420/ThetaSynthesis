@@ -68,5 +68,8 @@ class Scroll(ScrollABC):
             return type(self)((*self._others, *new), history)
         raise StopIteration('End of possible reactions has reached')
 
+    def __repr__(self):
+        return '.'.join(str(x) for x in self._synthons)
+
 
 __all__ = ['Scroll']

@@ -46,16 +46,15 @@ class ScrollABC(ABC):
 
 
 class RetroTreeABC(ABC):
-    __slots__ = ('_target', '_succ', '_pred', '_nodes', '_depth', '_size', '_free_node', '_visits')
+    __slots__ = ('_succ', '_pred', '_nodes', '_free_node', '_visits')
 
     @abstractmethod
     def __init__(self, target: ScrollABC, /):
-        self._target = target
         self._succ: Dict[int, Set[int]] = {1: set()}
         self._pred: Dict[int, int] = {1: 0}
         self._nodes: Dict[int, ScrollABC] = {1: target}
         self._visits: Dict[int, int] = {1: 0}
-        self._free_node: int = 1
+        self._free_node: int = 2
 
     @abstractmethod
     def __next__(self) -> Tuple[ReactionContainer, ...]:
@@ -70,7 +69,10 @@ class RetroTreeABC(ABC):
         """
         Current size of tree
         """
-        return self._free_node
+        return self._free_node - 1
+
+    def __repr__(self):
+        return f'{type(self).__name__}({self._nodes[1]})'
 
 
 __all__ = ['ScrollABC', 'RetroTreeABC']

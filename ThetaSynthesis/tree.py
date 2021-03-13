@@ -24,7 +24,7 @@ from .scroll import Scroll
 
 
 class RetroTree(RetroTreeABC):
-    __slots__ = ()
+    __slots__ = ('_depth', '_size')
 
     def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC], depth: int = 10, size: int = 1e4):
         """

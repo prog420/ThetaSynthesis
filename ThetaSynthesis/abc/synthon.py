@@ -67,5 +67,8 @@ class SynthonABC(metaclass=SynthonABCMeta):
     def molecule(self) -> MoleculeContainer:
         return self._molecule.copy()
 
+    def __repr__(self):
+        return str(self._molecule)
+
 
 __all__ = ['SynthonABC']
