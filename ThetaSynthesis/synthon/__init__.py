@@ -18,6 +18,7 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from .dummy import *
+from .greedy import *
 
 
-__all__ = ['DummySynthon']
+__all__ = ['DummySynthon', 'GreedySynthon']

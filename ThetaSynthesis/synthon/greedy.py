@@ -18,18 +18,24 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from .abc import SynthonABC
-from CGRtools import smiles
+from CGRtools import smiles, Reactor, ReactionContainer
 
 
-class DummySynthon(SynthonABC):
+class GreedySynthon(SynthonABC):
     """
     Test synthon for Acetaminophen.
     """
     __slots__ = ()
 
     def __iter__(self):
-        for prob, molecules in data[self._molecule][0]:
-            yield prob, tuple(type(self)(mol) for mol in molecules)
+        for prob, reactor in data[self._molecule][0]:
+            mols = []
+            for mol in next(reactor([self.molecule])).products:
+                # fix hydrogens
+                mol.kekule()
+                mol.thiele()
+                mols.append(mol)
+            yield prob, tuple(type(self)(mol) for mol in mols)
 
     def __bool__(self):
         return self._molecule in building_blocks
@@ -40,11 +46,13 @@ class DummySynthon(SynthonABC):
 
 building_blocks = {smiles('Oc1ccccc1')}
 pre_data = {
-    'CC(=O)Nc1ccc(O)cc1': (((.25, ('Oc1ccc(N)cc1',),),
-                            (.15, ('C(Nc1ccc(OC)cc1)(C)=O',)),
-                            (.2, ('ON=C(C)c1ccc(O)cc1',)),
-                            (.25, ('Oc1ccc(O)cc1',)),
-                            (.15, ('C(Nc1ccc(OC2OCCCC2)cc1)(C)=O',))), 1.),
+    '[CH3:1][C:2](=[O:3])[NH:4][c:5]1[cH:6][cH:7][c:8]([OH:9])[cH:10][cH:11]1': (
+            ((.25, ('[NH2:4][c:5]1[cH:6][cH:7][c:8]([OH:9])[cH:10][cH:11]1',),),
+             (.15, ('C(Nc1ccc(OC)cc1)(C)=O',)),  # todo: доделать
+             (.2, ('ON=C(C)c1ccc(O)cc1',)),
+             (.25, ('Oc1ccc(O)cc1',)),
+             (.15, ('C(Nc1ccc(OC2OCCCC2)cc1)(C)=O',))),
+            1.),
     'Oc1ccc(N)cc1': (((.3, ('O=N(=O)c1ccc(O)cc1',)),
                       (.4, ('c1(N)ccc(OC)cc1',)),
                       (.3, ('c1(O)ccc(F)cc1',))), 1.),
@@ -85,7 +93,12 @@ def convert(dct):
                 new_mol = smiles(mol)
                 new_mol.canonicalize()
                 synth.append(new_mol)
-            new_mols.append((prob, tuple(synth)))
+            rxn = ReactionContainer((k,), synth)
+            ext_center = set(rxn.extended_centers_list[0])
+            qk = k.substructure(ext_center.intersection(k), as_query=True)
+            qsynth = [m.substructure(ext_center.intersection(m), as_query=True) for m in synth]
+            template = ReactionContainer((qk,), qsynth)
+            new_mols.append((prob, Reactor(template)))
         out[k] = (tuple(new_mols), value)
     return out
 
@@ -93,4 +106,4 @@ def convert(dct):
 data = convert(pre_data)
 
 
-__all__ = ['DummySynthon']
+__all__ = ['GreedySynthon']
