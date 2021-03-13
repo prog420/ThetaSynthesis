@@ -94,8 +94,11 @@ class RetroTree(RetroTreeABC):
         # C_PUCT is a constant determining a level of exploration; can be from 1 to 6; 4 is more balanced value
         u = self._c_puct * prob / (1 + visit)
 
-        # Quotient of total action value of node and number of visit's
-        return self._total_actions[node] / visit + u
+        # check a case of zero count of visit
+        if visit:
+            # Quotient of total action value of node and number of visit's
+            return self._total_actions[node] / visit + u
+        return u
 
     def _prepare_path(self, node: int) -> Tuple[ReactionContainer, ...]:
         """
