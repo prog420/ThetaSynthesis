@@ -17,10 +17,8 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from typing import Type, Tuple
-
 from CGRtools import MoleculeContainer, ReactionContainer
-
+from typing import Type, Tuple
 from .abc import RetroTreeABC, SynthonABC
 from .scroll import Scroll
 
@@ -31,8 +29,7 @@ C_PUCT = 4
 class RetroTree(RetroTreeABC):
     __slots__ = ('_depth', '_size')
 
-    def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
-                 depth: int = 10, size: int = 1e4):
+    def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC], depth: int = 10, size: int = 1e4):
         """
         :param target: target molecule
         :param depth: max path to building blocks
@@ -43,7 +40,7 @@ class RetroTree(RetroTreeABC):
         self._size = size
         super().__init__(Scroll((synthon,), {synthon}))
 
-    def _add(self, node: int, scroll: Scroll):
+    def _add(self, node: int, scroll: Scroll, prob: float):
         """
         Add new node to tree.
         """
@@ -53,20 +50,28 @@ class RetroTree(RetroTreeABC):
         self._succ[node].add(new_node)
         self._succ[new_node] = set()
         self._visits[new_node] = 0
-        self._probabilities[node] = ...
+        self._probabilities[node] = prob
         self._total_actions[node] = 0.
         self._free_node += 1
 
-    def _update(self, node: int):
+    def _update_visits(self, node: int):
         """
         Increment visits count in path from given node to root.
         """
         visits = self._visits
-        total_actions = self._total_actions
         preds = self._pred
-        value = float(self._nodes[node])
         while node:
             visits[node] += 1
+            node = preds[node]
+
+    def _update_actions(self, node: int):
+        """
+        Update total action of each node in path to root by value of given node.
+        """
+        preds = self._pred
+        total_actions = self._total_actions
+        value = float(self._nodes[node])
+        while node:
             total_actions[node] += value
             node = preds[node]
 
@@ -74,8 +79,8 @@ class RetroTree(RetroTreeABC):
         """
         Expand new node.
         """
-        for scroll in self._nodes[node]:
-            self._add(node, scroll)
+        for prob, scroll in self._nodes[node]:
+            self._add(node, scroll, prob)
 
     def _select(self, node: int) -> int:
         """
@@ -96,13 +101,8 @@ class RetroTree(RetroTreeABC):
 
         # C_PUCT is a constant determining a level of exploration; can be from 1 to 6; 4 is more balanced value
         u = C_PUCT * prob * (sum_all_potential ** .5 / (1 + visit))
-        return self._mean_action(node) + u
-
-    def _mean_action(self, node: int) -> float:
-        """
-        Quotient of total action value of node and number of visit's
-        """
-        return self._total_actions[node] / self._visits[node]
+        # Quotient of total action value of node and number of visit's
+        return self._total_actions[node] / self._visits[node] + u
 
     def _prepare_path(self, node: int) -> Tuple[ReactionContainer, ...]:
         """
@@ -131,16 +131,22 @@ class RetroTree(RetroTreeABC):
             while True:
                 if self._visits[node]:  # already expanded
                     if not self._succ[node]:  # dead terminal non-building block node.
-                        self._update(node)
+                        self._update_visits(node)
                         break
                     node = self._select(node)
                     depth += 1
                 elif self._nodes[node]:  # found path!
-                    self._update(node)  # this prevents expanding of bb node
+                    self._update_visits(node)  # this prevents expanding of bb node
+                    # I dunno: self._update_actions(node)
                     return self._prepare_path(node)
                 elif depth < self._depth:  # expand if depth limit not reached
-                    self._update(node)  # mark node as visited
+                    self._update_visits(node)  # mark node as visited
+                    self._update_actions(node)
                     self._expand(node)
+                    break
+                else:
+                    self._update_visits(node)
+                    self._update_actions(node)
                     break
 
 

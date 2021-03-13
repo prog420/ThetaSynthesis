@@ -32,8 +32,10 @@ class ScrollABC(ABC):
         return self
 
     @abstractmethod
-    def __next__(self) -> 'ScrollABC':
-        ...
+    def __next__(self) -> Tuple[float, 'ScrollABC']:
+        """
+        Yield pairs of reaction value and Scroll.
+        """
 
     @abstractmethod
     def __bool__(self):

@@ -55,17 +55,17 @@ class Scroll(ScrollABC):
     def molecules(self):
         return tuple(x.molecule for x in self._synthons)
 
-    def __next__(self) -> 'Scroll':
+    def __next__(self):
         """
         Expand Tree.
         """
-        for new in self._expand:
+        for prob, new in self._expand:
             if not self._history.isdisjoint(new):
                 self._closures.add(new)
                 continue
             history = self._history.copy()
             history.update(new)
-            return type(self)((*self._others, *new), history)
+            return prob, type(self)((*self._others, *new), history)
         raise StopIteration('End of possible reactions has reached')
 
     def __repr__(self):
