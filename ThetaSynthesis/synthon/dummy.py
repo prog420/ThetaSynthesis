@@ -20,6 +20,7 @@
 from .abc import SynthonABC
 from CGRtools import smiles
 
+
 pre_data = {
     'CC(=O)Nc1ccc(O)cc1': (((.25, ('Oc1ccc(N)cc1',),), (.15, ('C(Nc1ccc(OC)cc1)(C)=O',)), (.2, ('ON=C(C)c1ccc(O)cc1',)),
                             (.25, ('Oc1ccc(O)cc1',)), (.15, ('C(Nc1ccc(OC2OCCCC2)cc1)(C)=O',))), 1.),
@@ -47,6 +48,9 @@ pre_data = {
 
 
 class DummySynthon(SynthonABC):
+    """
+    Test synthon for Acetaminophen.
+    """
     __slots__ = ()
 
     def __init__(self, molecule, /):

@@ -17,27 +17,23 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from abc import ABCMeta, abstractmethod
+from abc import ABC, abstractmethod
 from CGRtools import MoleculeContainer
 from typing import Tuple, Iterator
 
 
-class SynthonABCMeta(ABCMeta):
-    __singletons__ = {}
-
-    def __call__(cls, molecule: MoleculeContainer):
-        try:
-            return cls.__singletons__[molecule]
-        except KeyError:
-            cls.__singletons__[molecule] = st = super().__call__(molecule)
-            return st
-
-
-class SynthonABC(metaclass=SynthonABCMeta):
-    __slots__ = ('_molecule',)
+class SynthonABC(ABC):
+    __slots__ = ('_molecule', '_mapping')
+    __cache__ = {}
 
     def __init__(self, molecule: MoleculeContainer, /):
-        self._molecule = molecule
+        if str(molecule) in self.__cache__:
+            self._molecule = self.__cache__[str(molecule)]
+            self._mapping = self._molecule.get_fast_mapping(molecule)
+        else:
+            self.__cache__[str(molecule)] = molecule
+            self._molecule = molecule
+            self._mapping = None
 
     @abstractmethod
     def __iter__(self) -> Iterator[Tuple[float, Tuple['SynthonABC', ...]]]:
@@ -67,6 +63,8 @@ class SynthonABC(metaclass=SynthonABCMeta):
 
     @property
     def molecule(self) -> MoleculeContainer:
+        if self._mapping:
+            return self._molecule.remap(self._mapping, copy=True)
         return self._molecule.copy()
 
     def __repr__(self):
