@@ -18,13 +18,14 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from CGRtools import MoleculeContainer, ReactionContainer
+from tqdm import tqdm
 from typing import Type, Tuple
 from .abc import RetroTreeABC, SynthonABC
 from .scroll import Scroll
 
 
 class RetroTree(RetroTreeABC):
-    __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found')
+    __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found', '_tqdm')
 
     def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
                  c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e6):
@@ -40,10 +41,14 @@ class RetroTree(RetroTreeABC):
         self._size = size
         self._c_puct = c_puct
         self._expanded = 1
-        self._limit = iterations
+        self._limit = iterations = int(iterations)
         self._iterations = 0
         self._found = 0
+        self._tqdm = tqdm(total=iterations)
         super().__init__(Scroll((synthon,), {synthon}))
+
+    def __del__(self):
+        self._tqdm.close()
 
     def _add(self, node: int, scroll: Scroll, prob: float):
         """
@@ -121,6 +126,8 @@ class RetroTree(RetroTreeABC):
             node = self._nodes[node]
             tmp.append(node.molecules)
         tmp = [ReactionContainer(after[len(before) - 1:], before[:1]) for before, after in zip(tmp, tmp[1:])]
+        for r in tmp:
+            r.fix_positions()
         return tuple(reversed(tmp))
 
     def __next__(self):
@@ -129,6 +136,7 @@ class RetroTree(RetroTreeABC):
             if self._iterations > self._limit:
                 raise StopIteration('Iterations limit exceeded. '
                                     f'number of unvisited nodes: {self._free_node - self._expanded}')
+            self._tqdm.update()
             depth = 0
             node = 1
             while True:

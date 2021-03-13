@@ -26,7 +26,7 @@ setup(
     version='0.1.0',
     packages=['ThetaSynthesis', 'ThetaSynthesis.abc'],
     python_requires='>=3.8.1',
-    install_requires=['CGRtools>=4.1,<4.2'],
+    install_requires=['CGRtools>=4.1,<4.2', 'tqdm'],
     zip_safe=True,
     license='LGPLv3',
     url='https://github.com/dcloudf/ThetaSynthesis',
