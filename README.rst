@@ -11,16 +11,14 @@ API Example::
     from ThetaSynthesis.synthon import DummySynthon
 
 
-    def main(target, output, synthon):
-        target = smiles(target)
-        target.canonicalize()
+    target = smiles('CC(=O)NC1=CC=C(O)C=C1')
+    target.canonicalize()
 
-        tree = RetroTree(target, synthon_class=synthon)
+    tree = RetroTree(target, synthon_class=DummySynthon)
 
-        with RDFWrite(output) as f:
-            for r in next(tree):
+    with RDFWrite('acetaminophen.rdf') as f:
+        for path in tree:
+            for r in path:
                 f.write(r)
 
-
-    if __name__ == '__main__':
-        main('CC(=O)NC1=CC=C(O)C=C1', 'acetaminophen.rdf', DummySynthon)
+    print(tree.report())

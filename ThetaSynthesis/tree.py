@@ -24,20 +24,25 @@ from .scroll import Scroll
 
 
 class RetroTree(RetroTreeABC):
-    __slots__ = ('_depth', '_size', '_c_puct')
+    __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found')
 
     def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
-                 depth: int = 10, size: int = 1e4, c_puct: float = 4.):
+                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e6):
         """
         :param target: target molecule
+        :param c_puct: breadth/depth criterion
         :param depth: max path to building blocks
         :param size: max size of tree
-        :param c_puct: breadth/depth criterion
+        :param iterations: limit of iterations
         """
         synthon = synthon_class(target)
         self._depth = depth
         self._size = size
         self._c_puct = c_puct
+        self._expanded = 1
+        self._limit = iterations
+        self._iterations = 0
+        self._found = 0
         super().__init__(Scroll((synthon,), {synthon}))
 
     def _add(self, node: int, scroll: Scroll, prob: float):
@@ -106,10 +111,10 @@ class RetroTree(RetroTreeABC):
 
         :param node: building block node
         """
-        nodes = [node]
+        nodes = []
         while node:
-            node = self._pred[node]
             nodes.append(node)
+            node = self._pred[node]
 
         tmp = []
         for node in reversed(nodes):
@@ -119,7 +124,11 @@ class RetroTree(RetroTreeABC):
         return tuple(reversed(tmp))
 
     def __next__(self):
-        while self._free_node <= self._size:
+        while self._expanded < self._free_node <= self._size:
+            self._iterations += 1
+            if self._iterations > self._limit:
+                raise StopIteration('Iterations limit exceeded. '
+                                    f'number of unvisited nodes: {self._free_node - self._expanded}')
             depth = 0
             node = 1
             while True:
@@ -129,19 +138,28 @@ class RetroTree(RetroTreeABC):
                         break
                     node = self._select(node)
                     depth += 1
-                elif self._nodes[node]:  # found path!
-                    self._update_visits(node)  # this prevents expanding of bb node
-                    # I dunno: self._update_actions(node)
-                    return self._prepare_path(node)
-                elif depth < self._depth:  # expand if depth limit not reached
-                    self._update_visits(node)  # mark node as visited
-                    self._update_actions(node)
-                    self._expand(node)
-                    break
                 else:
-                    self._update_visits(node)
-                    self._update_actions(node)
-                    break
+                    self._expanded += 1  # increment visited nodes count.
+                    if self._nodes[node]:  # found path!
+                        self._update_visits(node)  # this prevents expanding of bb node
+                        # I dunno: self._update_actions(node)
+                        self._found += 1
+                        return self._prepare_path(node)
+                    elif depth < self._depth:  # expand if depth limit not reached
+                        self._update_visits(node)  # mark node as visited
+                        self._update_actions(node)
+                        self._expand(node)
+                        break
+                    else:
+                        self._update_visits(node)
+                        self._update_actions(node)
+                        break
+        raise StopIteration('Max tree size exceeded or all possible paths found')
+
+    def report(self):
+        return f'Tree for: {self._nodes[1]}\n' \
+               f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \
+               f'Found paths: {self._found}'
 
 
 __all__ = ['RetroTree']
