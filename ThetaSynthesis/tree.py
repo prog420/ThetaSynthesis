@@ -71,7 +71,6 @@ class RetroTree(RetroTreeABC):
         Select preferred successor node based on views count and synthesisability.
         """
         # todo: implement.
-        # todo: raise IndexError then successors empty
 
     def _prepare_path(self, node: int) -> Tuple[ReactionContainer, ...]:
         """
@@ -99,10 +98,10 @@ class RetroTree(RetroTreeABC):
             node = 1
             while True:
                 if self._visits[node]:  # already expanded
-                    try:
-                        node = self._select(node)
-                    except IndexError:  # terminal non-building block node
+                    if not self._succ[node]:  # dead terminal non-building block node.
+                        self._update(node)
                         break
+                    node = self._select(node)
                     depth += 1
                 elif self._nodes[node]:  # found path!
                     self._update(node)  # this prevents expanding of bb node
