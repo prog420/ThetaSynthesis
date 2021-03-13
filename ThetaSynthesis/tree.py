@@ -18,6 +18,7 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from CGRtools import MoleculeContainer, ReactionContainer
+import pygraphviz as pgv
 from tqdm import tqdm
 from typing import Type, Tuple
 from .abc import RetroTreeABC, SynthonABC
@@ -168,6 +169,25 @@ class RetroTree(RetroTreeABC):
         return f'Tree for: {self._nodes[1]}\n' \
                f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \
                f'Found paths: {self._found}'
+
+    def visualize(self):
+        nodes = {
+            k: f'id: {k} \n' \
+               f'visits: {self._visits[k]} \n' \
+               f'smiles in queue: {v.__repr__()}'
+            for k, v
+            in self._nodes.items()
+        }
+        pred = self._pred
+        g = pgv.AGraph(directed=True)
+        g.node_attr['shape'] = 'box'
+        g.add_edges_from([(v, k) for k, v in pred.items() if k != 1])
+
+        for k, node in zip(nodes, g.nodes()):
+            node.attr['label'] = nodes[k]
+
+        g.layout(prog='dot')
+        g.draw("test.png")
 
 
 __all__ = ['RetroTree']

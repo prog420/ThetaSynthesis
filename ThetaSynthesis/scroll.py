@@ -68,6 +68,9 @@ class Scroll(ScrollABC):
             return prob, type(self)((*self._others, *new), history)
         raise StopIteration('End of possible reactions has reached')
 
+    def __hash__(self):
+        return hash(tuple(hash(synth) for synth in self._synthons))
+
     def __repr__(self):
         return '.'.join(str(x) for x in self._synthons)
 
