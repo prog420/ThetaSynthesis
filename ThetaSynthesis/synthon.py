@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#  Copyright 2020-2021 Alexander Sizov <>
+#  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
 #  This file is part of CGRtools.
 #
@@ -21,25 +21,26 @@ from .abc import SynthonABC
 from CGRtools import smiles
 
 pre_data = {
-    'CC(=O)Nc1ccc(O)cc1': ((('Oc1ccc(N)cc1',), ('C(Nc1ccc(OC)cc1)(C)=O',), ('ON=C(C)c1ccc(O)cc1',), ('Oc1ccc(O)cc1',),
-                            ('C(Nc1ccc(OC2OCCCC2)cc1)(C)=O',)), 1.),
-    'Oc1ccc(N)cc1': ((('O=N(=O)c1ccc(O)cc1',), ('c1(N)ccc(OC)cc1',), ('c1(O)ccc(F)cc1',)), 1.),
-    'O=N(=O)c1ccc(O)cc1': ((('Oc1ccccc1',), ('N(c1ccc(N)cc1)(=O)=O',), ('c1(N(=O)=O)cc(c(cc1)O)Br',)), 1.),
+    'CC(=O)Nc1ccc(O)cc1': (((.25, ('Oc1ccc(N)cc1',),), (.15, ('C(Nc1ccc(OC)cc1)(C)=O',)), (.2, ('ON=C(C)c1ccc(O)cc1',)),
+                            (.25, ('Oc1ccc(O)cc1',)), (.15, ('C(Nc1ccc(OC2OCCCC2)cc1)(C)=O',))), 1.),
+    'Oc1ccc(N)cc1': (((.3, ('O=N(=O)c1ccc(O)cc1',)), (.4, ('c1(N)ccc(OC)cc1',)), (.3, ('c1(O)ccc(F)cc1',))), 1.),
+    'O=N(=O)c1ccc(O)cc1': (((.35, ('Oc1ccccc1',)), (.35, ('N(c1ccc(N)cc1)(=O)=O',)),
+                            (.3, ('c1(N(=O)=O)cc(c(cc1)O)Br',))), 1.),
     'Oc1ccccc1': ((), 1.),
     'C(Nc1ccc(OC)cc1)(C)=O': ((), -1.),
     'Oc1ccc(O)cc1': ((), 0.),
     'C(Nc1ccc(OC2OCCCC2)cc1)(C)=O': ((), -1.),
     'c1(N)ccc(OC)cc1': ((), -1.),
-    'c1(O)ccc(F)cc1': ((('c1(OCOCCOC)ccc(F)cc1',),), .1),
+    'c1(O)ccc(F)cc1': (((1., ('c1(OCOCCOC)ccc(F)cc1',)),), .1),
     'c1(OCOCCOC)ccc(F)cc1': ((), -1.),
     'c1(N(=O)=O)cc(c(cc1)O)Br': ((), -1.),
-    'N(c1ccc(N)cc1)(=O)=O': ((('C(c1c([N+](=O)[O-])ccc(c1)N)(=O)O',),), -.1),
+    'N(c1ccc(N)cc1)(=O)=O': (((1., ('C(c1c([N+](=O)[O-])ccc(c1)N)(=O)O',)),), -.1),
     'C(c1c([N+](=O)[O-])ccc(c1)N)(=O)O': ((), -1.),
-    'ON=C(C)c1ccc(O)cc1': ((('O=C(C)c1ccc(O)cc1',), ('[Si](C(C)(C)C)(Oc1ccc(C(=NO)C)cc1)(C)C',),
-                            ('c1(c(ccc(C(=NO)C)c1)O)N',)), 1.),
-    'c1(c(ccc(C(=NO)C)c1)O)N': ((('c1(c(cc(C(=NO)C)cc1)N)OCOC',),), -.2),
+    'ON=C(C)c1ccc(O)cc1': (((.5, ('O=C(C)c1ccc(O)cc1',)), (.2, ('[Si](C(C)(C)C)(Oc1ccc(C(=NO)C)cc1)(C)C',)),
+                            (.3, ('c1(c(ccc(C(=NO)C)c1)O)N',))), 1.),
+    'c1(c(ccc(C(=NO)C)c1)O)N': (((1., ('c1(c(cc(C(=NO)C)cc1)N)OCOC',)),), -.2),
     'c1(c(cc(C(=NO)C)cc1)N)OCOC': ((), -1.),
-    'O=C(C)c1ccc(O)cc1': ((('Oc1ccccc1',), ('[Si](C(C)(C)C)(Oc1ccc(C(=O)C)cc1)(C)C',)), 1.),
+    'O=C(C)c1ccc(O)cc1': (((.85, ('Oc1ccccc1',)), (.15, ('[Si](C(C)(C)C)(Oc1ccc(C(=O)C)cc1)(C)C',))), 1.),
     '[Si](C(C)(C)C)(Oc1ccc(C(=O)C)cc1)(C)C': ((), -1.),
     '[Si](C(C)(C)C)(Oc1ccc(C(=NO)C)cc1)(C)C': ((), -1.),
 }
@@ -52,8 +53,8 @@ class DummySynthon(SynthonABC):
         super().__init__(molecule)
 
     def __iter__(self):
-        for prob, mol in data[self.molecule][0]:
-            yield prob, tuple(type(self)(m) for m in mol)
+        for prob, tuple_ in data[self.molecule][0]:
+            yield prob, tuple(type(self)(mol) for mol in tuple_)
 
     def __bool__(self):
         return self.molecule in building_blocks
@@ -67,17 +68,17 @@ building_blocks = {smiles('Oc1ccccc1')}
 
 def convert(dct):
     out = {}
-    for k, (mols, value) in dct.items():
+    for k, (tuples, value) in dct.items():
         k = smiles(k)
         k.canonicalize()
         new_mols = []
-        for mols in mols:
+        for prob, mols in tuples:
             synth = []
             for mol in mols:
                 new_mol = smiles(mol)
                 new_mol.canonicalize()
                 synth.append(new_mol)
-            new_mols.append(tuple(synth))
+            new_mols.append((prob, tuple(synth)))
         out[k] = (tuple(new_mols), value)
     return out
 
