@@ -58,22 +58,18 @@ class RetroTree(RetroTreeABC):
         """
         Increment visits count in path from given node to root.
         """
-        visits = self._visits
-        preds = self._pred
         while node:
-            visits[node] += 1
-            node = preds[node]
+            self._visits[node] += 1
+            node = self._pred[node]
 
     def _update_actions(self, node: int):
         """
         Update total action of each node in path to root by value of given node.
         """
-        preds = self._pred
-        total_actions = self._total_actions
         value = float(self._nodes[node])
         while node:
-            total_actions[node] += value
-            node = preds[node]
+            self._total_actions[node] += value
+            node = self._pred[node]
 
     def _expand(self, node: int):
         """
@@ -110,16 +106,14 @@ class RetroTree(RetroTreeABC):
 
         :param node: building block node
         """
-        preds = self._pred
         nodes = [node]
         while node:
-            node = preds[node]
+            node = self._pred[node]
             nodes.append(node)
 
-        scrolls = self._nodes
         tmp = []
         for node in reversed(nodes):
-            node = scrolls[node]
+            node = self._nodes[node]
             tmp.append(node.molecules)
         tmp = [ReactionContainer(after[len(before) - 1:], before[:1]) for before, after in zip(tmp, tmp[1:])]
         return tuple(reversed(tmp))
