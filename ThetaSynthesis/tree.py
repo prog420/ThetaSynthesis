@@ -23,21 +23,21 @@ from .abc import RetroTreeABC, SynthonABC
 from .scroll import Scroll
 
 
-C_PUCT = 4
-
-
 class RetroTree(RetroTreeABC):
-    __slots__ = ('_depth', '_size')
+    __slots__ = ('_depth', '_size', '_c_puct')
 
-    def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC], depth: int = 10, size: int = 1e4):
+    def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
+                 depth: int = 10, size: int = 1e4, c_puct: float = 4.):
         """
         :param target: target molecule
         :param depth: max path to building blocks
         :param size: max size of tree
+        :param c_puct: breadth/depth criterion
         """
         synthon = synthon_class(target)
         self._depth = depth
         self._size = size
+        self._c_puct = c_puct
         super().__init__(Scroll((synthon,), {synthon}))
 
     def _add(self, node: int, scroll: Scroll, prob: float):
@@ -94,9 +94,8 @@ class RetroTree(RetroTreeABC):
         sum_all_potential = sum(self._visits[x] for x in self._succ[self._pred[node]])
 
         visit = self._visits[node]
-
         # C_PUCT is a constant determining a level of exploration; can be from 1 to 6; 4 is more balanced value
-        u = C_PUCT * prob * (sum_all_potential ** .5 / (1 + visit))
+        u = self._c_puct * prob * (sum_all_potential ** .5 / (1 + visit))
         # Quotient of total action value of node and number of visit's
         return self._total_actions[node] / self._visits[node] + u
 
