@@ -39,6 +39,10 @@ class ScrollABC(ABC):
     def __bool__(self):
         ...
 
+    @abstractmethod
+    def __float__(self):
+        ...
+
     @property
     @abstractmethod
     def molecules(self) -> Tuple[MoleculeContainer, ...]:
@@ -46,7 +50,7 @@ class ScrollABC(ABC):
 
 
 class RetroTreeABC(ABC):
-    __slots__ = ('_succ', '_pred', '_nodes', '_free_node', '_visits')
+    __slots__ = ('_succ', '_pred', '_nodes', '_free_node', '_visits', '_total_actions', '_probabilities')
 
     @abstractmethod
     def __init__(self, target: ScrollABC, /):
@@ -54,6 +58,8 @@ class RetroTreeABC(ABC):
         self._pred: Dict[int, int] = {1: 0}
         self._nodes: Dict[int, ScrollABC] = {1: target}
         self._visits: Dict[int, int] = {1: 0}
+        self._total_actions: Dict[int, float] = {1: 0.}
+        self._probabilities: Dict[int, float] = {1: 0.}
         self._free_node: int = 2
 
     @abstractmethod

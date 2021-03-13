@@ -17,16 +17,22 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from CGRtools import MoleculeContainer, ReactionContainer
 from typing import Type, Tuple
+
+from CGRtools import MoleculeContainer, ReactionContainer
+
 from .abc import RetroTreeABC, SynthonABC
 from .scroll import Scroll
+
+
+C_PUCT = 4
 
 
 class RetroTree(RetroTreeABC):
     __slots__ = ('_depth', '_size')
 
-    def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC], depth: int = 10, size: int = 1e4):
+    def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
+                 depth: int = 10, size: int = 1e4):
         """
         :param target: target molecule
         :param depth: max path to building blocks
@@ -47,6 +53,8 @@ class RetroTree(RetroTreeABC):
         self._succ[node].add(new_node)
         self._succ[new_node] = set()
         self._visits[new_node] = 0
+        self._probabilities[node] = ...
+        self._total_actions[node] = 0.
         self._free_node += 1
 
     def _update(self, node: int):
@@ -54,9 +62,12 @@ class RetroTree(RetroTreeABC):
         Increment visits count in path from given node to root.
         """
         visits = self._visits
+        total_actions = self._total_actions
         preds = self._pred
+        value = float(self._nodes[node])
         while node:
             visits[node] += 1
+            total_actions[node] += value
             node = preds[node]
 
     def _expand(self, node: int):
@@ -70,7 +81,28 @@ class RetroTree(RetroTreeABC):
         """
         Select preferred successor node based on views count and synthesisability.
         """
-        # todo: implement.
+        return max(self._succ[node], key=self._puct)
+
+    def _puct(self, node):
+        """
+        Polynomial upper confidence trees criterion for choosing node from tree
+        """
+        prob = self._probabilities[node]
+
+        # sum all visit counts across child nodes of parent's for this node
+        sum_all_potential = sum(self._visits[x] for x in self._succ[self._pred[node]])
+
+        visit = self._visits[node]
+
+        # C_PUCT is a constant determining a level of exploration; can be from 1 to 6; 4 is more balanced value
+        u = C_PUCT * prob * (sum_all_potential ** .5 / (1 + visit))
+        return self._mean_action(node) + u
+
+    def _mean_action(self, node: int) -> float:
+        """
+        Quotient of total action value of node and number of visit's
+        """
+        return self._total_actions[node] / self._visits[node]
 
     def _prepare_path(self, node: int) -> Tuple[ReactionContainer, ...]:
         """
