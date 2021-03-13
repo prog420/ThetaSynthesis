@@ -50,8 +50,8 @@ class RetroTree(RetroTreeABC):
         self._succ[node].add(new_node)
         self._succ[new_node] = set()
         self._visits[new_node] = 0
-        self._probabilities[node] = prob
-        self._total_actions[node] = 0.
+        self._probabilities[new_node] = prob
+        self._total_actions[new_node] = 0.
         self._free_node += 1
 
     def _update_visits(self, node: int):
