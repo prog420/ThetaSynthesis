@@ -28,14 +28,18 @@ class GreedySynthon(SynthonABC):
     __slots__ = ()
 
     def __iter__(self):
-        for prob, reactor in data[self._molecule][0]:
+        for prob, reactor, synth in data[self._molecule][0]:
             mols = []
-            for mol in next(reactor([self.molecule])).products:
-                # fix hydrogens
-                mol.kekule()
-                mol.thiele()
-                mols.append(mol)
-            yield prob, tuple(type(self)(mol) for mol in mols)
+            for r in reactor([self.molecule]):
+                if synth != set(r.products):
+                    continue
+                for mol in r.products:
+                    # fix hydrogens
+                    mol.kekule()
+                    mol.thiele()
+                    mols.append(mol)
+                yield prob, tuple(type(self)(mol) for mol in mols)
+                break
 
     def __bool__(self):
         return self._molecule in building_blocks
@@ -98,7 +102,7 @@ def convert(dct):
             qk = k.substructure(ext_center.intersection(k), as_query=True)
             qsynth = [m.substructure(ext_center.intersection(m), as_query=True) for m in synth]
             template = ReactionContainer((qk,), qsynth)
-            new_mols.append((prob, Reactor(template)))
+            new_mols.append((prob, Reactor(template), set(synth)))
         out[k] = (tuple(new_mols), value)
     return out
 
