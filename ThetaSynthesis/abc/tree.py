@@ -45,6 +45,13 @@ class ScrollABC(ABC):
     def __float__(self):
         ...
 
+    @abstractmethod
+    def __hash__(self):
+        ...
+
+    def __eq__(self, other: "ScrollABC"):
+        return hash(self) == hash(other)
+
     @property
     @abstractmethod
     def molecules(self) -> Tuple[MoleculeContainer, ...]:
@@ -81,6 +88,10 @@ class RetroTreeABC(ABC):
 
     def __repr__(self):
         return f'{type(self).__name__}({self._nodes[1]})'
+
+    @abstractmethod
+    def visualize(self):
+        ...
 
 
 __all__ = ['ScrollABC', 'RetroTreeABC']
