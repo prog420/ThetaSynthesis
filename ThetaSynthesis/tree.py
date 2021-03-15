@@ -170,7 +170,7 @@ class RetroTree(RetroTreeABC):
                f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \
                f'Found paths: {self._found}'
 
-    def visualize(self, format: str = 'png'):
+    def visualize(self, draw_format: str = 'png'):
         import pygraphviz as pgv
         nodes = {
             k: f'id: {k} \n'
@@ -188,7 +188,7 @@ class RetroTree(RetroTreeABC):
             node.attr['label'] = nodes[k]
 
         g.layout(prog='dot')
-        return g.draw(format=format)
+        return g.draw(format=draw_format)
 
 
 __all__ = ['RetroTree']

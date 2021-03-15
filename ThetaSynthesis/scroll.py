@@ -73,7 +73,7 @@ class Scroll(ScrollABC):
         return hash(tuple(hash(synth) for synth in self._synthons))
 
     def __repr__(self):
-        return '.'.join(str(x) for x in self._synthons)
+        return '\n'.join([repr(x) for x in self._synthons])
 
 
 __all__ = ['Scroll']
