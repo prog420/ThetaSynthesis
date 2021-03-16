@@ -18,6 +18,7 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from CGRtools import MoleculeContainer, ReactionContainer
+from math import sqrt
 from tqdm import tqdm
 from typing import Type, Tuple
 from .abc import RetroTreeABC
@@ -103,9 +104,9 @@ class RetroTree(RetroTreeABC):
         visit = self._visits[node]
 
         # C_PUCT is a constant determining a level of exploration; can be from 1 to 6; 4 is more balanced value
-        u = self._c_puct * prob * ((sum(self._visits[x] + 1 for x in self._succ[self._pred[node]])) ** .5 / (1 + visit))
+        u = self._c_puct * prob * sqrt(sum(self._visits[x] + 1 for x in self._succ[self._pred[node]]))
 
-        return self._total_actions[node] / (visit + 1) + u
+        return (self._total_actions[node] + u) / (visit + 1)
 
     def _prepare_path(self, node: int) -> Tuple[ReactionContainer, ...]:
         """

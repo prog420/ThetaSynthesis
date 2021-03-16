@@ -46,10 +46,12 @@ class Scroll(ScrollABC):
     def __len__(self):
         return len(self._synthons)
 
-    def __float__(self):
+    def __float__(self, **kwargs):
         """
         Worse value from all synthons in the scroll
         """
+        for mol in self._synthons:
+            mol(**kwargs)
         return min(float(x) for x in self._synthons)
 
     @property

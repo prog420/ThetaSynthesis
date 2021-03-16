@@ -19,6 +19,7 @@
 #
 from .dummy import *
 from .greedy import *
+from .rollout import *
 
 
-__all__ = ['DummySynthon', 'GreedySynthon']
+__all__ = ['DummySynthon', 'GreedySynthon', 'RolloutSynthon']
