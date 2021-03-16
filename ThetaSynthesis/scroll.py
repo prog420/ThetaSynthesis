@@ -37,6 +37,9 @@ class Scroll(ScrollABC):
         else:
             self._expand = iter(current)
 
+    def __call__(self, **kwargs):
+        self._synthons[0](**kwargs)  # default scroll just transfer params into first synthon.
+
     def __bool__(self):
         """
         Is terminal state. All synthons is building blocks

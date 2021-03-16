@@ -55,7 +55,17 @@ class ScrollABC(ABC):
     @property
     @abstractmethod
     def molecules(self) -> Tuple[MoleculeContainer, ...]:
-        ...
+        """
+        Molecules stored in scroll.
+        """
+
+    @abstractmethod
+    def __call__(self, **kwargs):
+        """
+        Apply additional params from tree to scroll.
+
+        Unified way for tree customizations.
+        """
 
 
 class RetroTreeABC(ABC):

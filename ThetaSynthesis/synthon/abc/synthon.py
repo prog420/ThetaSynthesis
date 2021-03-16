@@ -35,6 +35,13 @@ class SynthonABC(ABC):
             self._molecule = molecule
             self._mapping = None
 
+    def __call__(self, **kwargs):
+        """
+        Additional init params for proper synthon working.
+
+        Called by Scroll.
+        """
+
     @abstractmethod
     def __iter__(self) -> Iterator[Tuple[float, Tuple['SynthonABC', ...]]]:
         """

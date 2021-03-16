@@ -27,7 +27,7 @@ from .synthon.abc import SynthonABC
 
 
 class RetroTree(RetroTreeABC):
-    __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found', '_tqdm')
+    __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found', '_tqdm', '_node_depth')
 
     def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
                  c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e6):
@@ -46,6 +46,7 @@ class RetroTree(RetroTreeABC):
         self._limit = iterations = int(iterations)
         self._iterations = 0
         self._found = 0
+        self._node_depth = {1: 0}
         self._tqdm = tqdm(total=iterations)
         super().__init__(Scroll((synthon,), {synthon}))
 
@@ -64,6 +65,7 @@ class RetroTree(RetroTreeABC):
         self._visits[new_node] = 0
         self._probabilities[new_node] = prob
         self._total_actions[new_node] = 0.
+        self._node_depth[new_node] = self._node_depth[node] + 1
         self._free_node += 1
 
     def _update_visits(self, node: int):
@@ -87,7 +89,9 @@ class RetroTree(RetroTreeABC):
         """
         Expand new node.
         """
+        finish = self._depth - self._node_depth[node]
         for prob, scroll in self._nodes[node]:
+            scroll(finish=finish)  # init new scroll
             self._add(node, scroll, prob)
 
     def _select(self, node: int) -> int:
