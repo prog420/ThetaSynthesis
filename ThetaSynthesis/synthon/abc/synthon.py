@@ -39,6 +39,7 @@ class SynthonABC(ABC):
     def __iter__(self) -> Iterator[Tuple[float, Tuple['SynthonABC', ...]]]:
         """
         Generator of precursors synthons. Ordered by preference of reactions.
+        The number by which the rules are sorted, has a mathematical meaning of probability to take this reaction.
 
         :return: Pairs of reaction value and tuple of synthons.
         """
@@ -53,6 +54,8 @@ class SynthonABC(ABC):
     def __float__(self):
         """
         Value of synthesisability.
+        Can return a number from -1 to 1.
+        Represent an opportunity to synthesize a molecule from commercially available compounds.
         """
 
     def __hash__(self):
