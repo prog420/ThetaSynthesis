@@ -58,7 +58,7 @@ class RolloutSynthon(SynthonABC):
             curr, depth = queue.popleft()
             depth = depth + 1
             if depth > max_depth:
-                self._float = -1.
+                self._float = -.5
                 return self._float
             seen.add(curr)
             result = self._get_products(curr)

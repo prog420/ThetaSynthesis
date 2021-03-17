@@ -173,23 +173,35 @@ class RetroTree(RetroTreeABC):
                f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \
                f'Found paths: {self._found}'
 
-    def visualize(self, draw_format: str = 'png'):
+    def visualize(self, draw_format: str = 'png', only_visited: bool = False, verbose: int = 2):
         import pygraphviz as pgv
-        nodes = {
-            k: f'id: {k} \n'
-               f'visits: {self._visits[k]} \n'
-               f'smiles in queue: {v.__repr__()} \n'
-               f'value: {float(self._nodes[k])}'
+        if only_visited:
+            nodes = {k: v for k, v in self._nodes.items() if self._succ[k]}
+        else:
+            nodes = {k: v for k, v in self._nodes.items()}
+
+        lst = ['id', 'visits', 'value', 'smiles in queue']
+        if verbose == 2:
+            ...
+        elif verbose == 1:
+            lst = lst[:2]
+        elif verbose == 0:
+            lst = lst[:1]
+
+        lambdas = [lambda x: x, lambda x: self._visits[x], lambda x: x.__repr__(), lambda x: float(self._nodes[x])]
+
+        nodes_with_attrs = {
+            k: '\n'.join(f'{x}: {z(y)}' for x, y, z in zip(lst, [k, k, v, k], lambdas))
             for k, v
             in self._nodes.items()
         }
         pred = self._pred
         g = pgv.AGraph(directed=True)
         g.node_attr['shape'] = 'box'
-        g.add_edges_from([(v, k) for k, v in pred.items() if k != 1])
+        g.add_edges_from([(v, k) for k, v in pred.items() if k != 1 and k in nodes])
 
         for k, node in zip(nodes, g.nodes()):
-            node.attr['label'] = nodes[k]
+            node.attr['label'] = nodes_with_attrs[k]
 
         g.layout(prog='dot')
         return g.draw(format=draw_format)
