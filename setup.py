@@ -2,7 +2,7 @@
 #
 #  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  This file is part of CGRtools.
+#  This file is part of ThetaSynthesis.
 #
 #  ThetaSynthesis is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
@@ -27,6 +27,7 @@ setup(
     packages=['ThetaSynthesis', 'ThetaSynthesis.abc', 'ThetaSynthesis.synthon', 'ThetaSynthesis.synthon.abc'],
     python_requires='>=3.8.1',
     install_requires=['CGRtools>=4.1,<4.2', 'tqdm'],
+    package_data={'ThetaSynthesis.synthon.rollout': ['data/*']},
     zip_safe=True,
     license='LGPLv3',
     url='https://github.com/dcloudf/ThetaSynthesis',

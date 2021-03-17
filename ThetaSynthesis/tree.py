@@ -2,7 +2,7 @@
 #
 #  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  This file is part of CGRtools.
+#  This file is part of ThetaSynthesis.
 #
 #  ThetaSynthesis is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
@@ -38,9 +38,8 @@ class RetroTree(RetroTreeABC):
         :param size: max size of tree
         :param iterations: limit of iterations
         """
-        synthon = synthon_class(target)
         self._depth = depth
-        self._size = size
+        self._size = int(size)
         self._c_puct = c_puct
         self._expanded = 1
         self._limit = iterations = int(iterations)
@@ -48,9 +47,11 @@ class RetroTree(RetroTreeABC):
         self._found = 0
         self._node_depth = {1: 0}
         self._tqdm = tqdm(total=iterations)
-        target_scroll = Scroll((synthon, ), {synthon})
-        target_scroll(finish=self._depth)
-        super().__init__(target_scroll)
+
+        synthon = synthon_class(target)
+        scroll = Scroll((synthon, ), {synthon}, 1)
+        scroll(finish=self._depth)
+        super().__init__(scroll)
 
     def __del__(self):
         self._tqdm.close()

@@ -2,7 +2,7 @@
 #
 #  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  This file is part of CGRtools.
+#  This file is part of ThetaSynthesis.
 #
 #  ThetaSynthesis is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
@@ -94,7 +94,8 @@ class RulesNet(LightningModule):
         # ordered by patent's frequencies reactors
         rules_bit_vector = self.forward(x)
         values, indices = sort(rules_bit_vector, descending=True)
-        return [(p, self.reactors[index.item()]) for prob, index in zip(values.squeeze(0), indices.squeeze(0)) if (p := prob.item()) > .5]
+        return [(p, self.reactors[index.item()]) for prob, index
+                in zip(values.squeeze(0), indices.squeeze(0)) if (p := prob.item()) > .5]
 
 
 __all__ = ['RulesNet']

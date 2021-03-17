@@ -2,7 +2,7 @@
 #
 #  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  This file is part of CGRtools.
+#  This file is part of ThetaSynthesis.
 #
 #  ThetaSynthesis is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
@@ -98,10 +98,6 @@ class RetroTreeABC(ABC):
 
     def __repr__(self):
         return f'{type(self).__name__}({self._nodes[1]})'
-
-    @abstractmethod
-    def visualize(self):
-        ...
 
 
 __all__ = ['ScrollABC', 'RetroTreeABC']

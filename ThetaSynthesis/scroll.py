@@ -2,7 +2,7 @@
 #
 #  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  This file is part of CGRtools.
+#  This file is part of ThetaSynthesis.
 #
 #  ThetaSynthesis is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
@@ -25,7 +25,7 @@ from .synthon.abc import SynthonABC
 class Scroll(ScrollABC):
     __slots__ = ('_synthons', '_history', '_expand', '_closures', '_others')
 
-    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], others: int = 0, /):
+    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], others: int, /):
         self._synthons = synthons
         self._others = others
         self._history = history
