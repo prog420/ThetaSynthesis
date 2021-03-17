@@ -30,7 +30,7 @@ class RetroTree(RetroTreeABC):
     __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found', '_tqdm', '_node_depth')
 
     def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
-                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e6):
+                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e4):
         """
         :param target: target molecule
         :param c_puct: breadth/depth criterion
@@ -135,7 +135,7 @@ class RetroTree(RetroTreeABC):
         return tuple(reversed(tmp))
 
     def __next__(self):
-        while self._expanded < self._free_node <= self._size:
+        while self._expanded < self._size:
             self._iterations += 1
             if self._iterations > self._limit:
                 raise StopIteration('Iterations limit exceeded. '
