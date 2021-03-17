@@ -59,11 +59,15 @@ class RolloutSynthon(SynthonABC):
             depth = depth + 1
             if depth > max_depth:
                 self._float = -1.
-                return -1.
+                return self._float
             seen.add(curr)
-            queue.extend((x, depth) for x in seen.difference(self._get_products(curr)) if str(x) not in self.__bb__)
+            result = self._get_products(curr)
+            if not result:
+                self._float = -1.
+                return self._float
+            queue.extend((x, depth) for x in set(result).difference(seen) if str(x) not in self.__bb__)
         self._float = 1.
-        return 1.
+        return self._float
 
     def _get_products(self, molecule: 'MoleculeContainer') -> Tuple['MoleculeContainer', ...]:
         for _, reactor in self.__net__.get_reactors(molecule):

@@ -178,7 +178,8 @@ class RetroTree(RetroTreeABC):
         nodes = {
             k: f'id: {k} \n'
                f'visits: {self._visits[k]} \n'
-               f'smiles in queue: {v.__repr__()}'
+               f'smiles in queue: {v.__repr__()} \n'
+               f'value: {float(self._nodes[k])}'
             for k, v
             in self._nodes.items()
         }
