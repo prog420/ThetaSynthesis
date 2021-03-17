@@ -2,7 +2,7 @@
 #
 #  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  This file is part of CGRtools.
+#  This file is part of ThetaSynthesis.
 #
 #  ThetaSynthesis is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
@@ -25,9 +25,9 @@ from .synthon.abc import SynthonABC
 class Scroll(ScrollABC):
     __slots__ = ('_synthons', '_history', '_expand', '_closures', '_others')
 
-    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], /):
+    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], others: int, /):
         self._synthons = synthons
-        self._others = synthons[1:]
+        self._others = others
         self._history = history
         self._closures = set()  # expanded synthons available in history
 
@@ -36,6 +36,10 @@ class Scroll(ScrollABC):
             self._expand = ()
         else:
             self._expand = iter(current)
+
+    def __call__(self, **kwargs):
+        for synth in self._synthons[-self._others:]:
+            synth(**kwargs)  # default scroll just transfer params into all new added synthons.
 
     def __bool__(self):
         """
@@ -66,7 +70,7 @@ class Scroll(ScrollABC):
                 continue
             history = self._history.copy()
             history.update(new)
-            return prob, type(self)((*self._others, *new), history)
+            return prob, type(self)((*self._synthons[1:], *new), history, len(new))
         raise StopIteration('End of possible reactions has reached')
 
     def __hash__(self):

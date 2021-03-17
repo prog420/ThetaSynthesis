@@ -2,7 +2,7 @@
 #
 #  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  This file is part of CGRtools.
+#  This file is part of ThetaSynthesis.
 #
 #  ThetaSynthesis is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
@@ -18,6 +18,7 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from CGRtools import MoleculeContainer, ReactionContainer
+from math import sqrt
 from tqdm import tqdm
 from typing import Type, Tuple
 from .abc import RetroTreeABC
@@ -26,27 +27,31 @@ from .synthon.abc import SynthonABC
 
 
 class RetroTree(RetroTreeABC):
-    __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found', '_tqdm')
+    __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found', '_tqdm', '_node_depth')
 
     def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
-                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e6):
+                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e4):
         """
         :param target: target molecule
         :param c_puct: breadth/depth criterion
-        :param depth: max path to building blocks
+        :param depth: max length of path to building blocks
         :param size: max size of tree
         :param iterations: limit of iterations
         """
-        synthon = synthon_class(target)
         self._depth = depth
-        self._size = size
+        self._size = int(size)
         self._c_puct = c_puct
         self._expanded = 1
         self._limit = iterations = int(iterations)
         self._iterations = 0
         self._found = 0
+        self._node_depth = {1: 0}
         self._tqdm = tqdm(total=iterations)
-        super().__init__(Scroll((synthon,), {synthon}))
+
+        synthon = synthon_class(target)
+        scroll = Scroll((synthon, ), {synthon}, 1)
+        scroll(finish=self._depth)
+        super().__init__(scroll)
 
     def __del__(self):
         self._tqdm.close()
@@ -63,6 +68,7 @@ class RetroTree(RetroTreeABC):
         self._visits[new_node] = 0
         self._probabilities[new_node] = prob
         self._total_actions[new_node] = 0.
+        self._node_depth[new_node] = self._node_depth[node] + 1
         self._free_node += 1
 
     def _update_visits(self, node: int):
@@ -86,7 +92,9 @@ class RetroTree(RetroTreeABC):
         """
         Expand new node.
         """
+        finish = self._depth - self._node_depth[node]
         for prob, scroll in self._nodes[node]:
+            scroll(finish=finish)  # init new scroll
             self._add(node, scroll, prob)
 
     def _select(self, node: int) -> int:
@@ -103,9 +111,9 @@ class RetroTree(RetroTreeABC):
         visit = self._visits[node]
 
         # C_PUCT is a constant determining a level of exploration; can be from 1 to 6; 4 is more balanced value
-        u = self._c_puct * prob * ((sum(self._visits[x] + 1 for x in self._succ[self._pred[node]])) ** .5 / (1 + visit))
+        u = self._c_puct * prob * sqrt(sum(self._visits[x] + 1 for x in self._succ[self._pred[node]]))
 
-        return self._total_actions[node] / (visit + 1) + u
+        return (self._total_actions[node] + u) / (visit + 1)
 
     def _prepare_path(self, node: int) -> Tuple[ReactionContainer, ...]:
         """
@@ -128,7 +136,7 @@ class RetroTree(RetroTreeABC):
         return tuple(reversed(tmp))
 
     def __next__(self):
-        while self._expanded < self._free_node <= self._size:
+        while self._expanded < self._size:
             self._iterations += 1
             if self._iterations > self._limit:
                 raise StopIteration('Iterations limit exceeded. '
@@ -151,9 +159,9 @@ class RetroTree(RetroTreeABC):
                         self._found += 1
                         return self._prepare_path(node)
                     elif depth < self._depth:  # expand if depth limit not reached
+                        self._expand(node)
                         self._update_visits(node)  # mark node as visited
                         self._update_actions(node)
-                        self._expand(node)
                         break
                     else:
                         self._update_visits(node)
@@ -166,22 +174,35 @@ class RetroTree(RetroTreeABC):
                f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \
                f'Found paths: {self._found}'
 
-    def visualize(self, draw_format: str = 'png'):
+    def visualize(self, draw_format: str = 'png', only_visited: bool = False, verbose: int = 2):
         import pygraphviz as pgv
-        nodes = {
-            k: f'id: {k} \n'
-               f'visits: {self._visits[k]} \n'
-               f'smiles in queue: {v.__repr__()}'
+        if only_visited:
+            nodes = {k: v for k, v in self._nodes.items() if self._succ[k]}
+        else:
+            nodes = {k: v for k, v in self._nodes.items()}
+
+        lst = ['id', 'visits', 'value', 'smiles in queue']
+        if verbose == 2:
+            ...
+        elif verbose == 1:
+            lst = lst[:2]
+        elif verbose == 0:
+            lst = lst[:1]
+
+        lambdas = [lambda x: x, lambda x: self._visits[x], lambda x: x.__repr__(), lambda x: float(self._nodes[x])]
+
+        nodes_with_attrs = {
+            k: '\n'.join(f'{x}: {z(y)}' for x, y, z in zip(lst, [k, k, v, k], lambdas))
             for k, v
             in self._nodes.items()
         }
         pred = self._pred
         g = pgv.AGraph(directed=True)
         g.node_attr['shape'] = 'box'
-        g.add_edges_from([(v, k) for k, v in pred.items() if k != 1])
+        g.add_edges_from([(v, k) for k, v in pred.items() if k != 1 and k in nodes])
 
         for k, node in zip(nodes, g.nodes()):
-            node.attr['label'] = nodes[k]
+            node.attr['label'] = nodes_with_attrs[k]
 
         g.layout(prog='dot')
         return g.draw(format=draw_format)

@@ -2,7 +2,7 @@
 #
 #  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
-#  This file is part of CGRtools.
+#  This file is part of ThetaSynthesis.
 #
 #  ThetaSynthesis is free software; you can redistribute it and/or modify
 #  it under the terms of the GNU Lesser General Public License as published by
@@ -34,6 +34,13 @@ class SynthonABC(ABC):
             self.__cache__[str(molecule)] = molecule
             self._molecule = molecule
             self._mapping = None
+
+    def __call__(self, **kwargs):
+        """
+        Additional init params for proper synthon working.
+
+        Called by Scroll.
+        """
 
     @abstractmethod
     def __iter__(self) -> Iterator[Tuple[float, Tuple['SynthonABC', ...]]]:
