@@ -34,7 +34,7 @@ class RetroTree(RetroTreeABC):
         """
         :param target: target molecule
         :param c_puct: breadth/depth criterion
-        :param depth: max path to building blocks
+        :param depth: max length of path to building blocks
         :param size: max size of tree
         :param iterations: limit of iterations
         """
@@ -48,7 +48,9 @@ class RetroTree(RetroTreeABC):
         self._found = 0
         self._node_depth = {1: 0}
         self._tqdm = tqdm(total=iterations)
-        super().__init__(Scroll((synthon,), {synthon}))
+        target_scroll = Scroll((synthon, ), {synthon})
+        target_scroll(finish=self._depth)
+        super().__init__(target_scroll)
 
     def __del__(self):
         self._tqdm.close()
@@ -156,9 +158,9 @@ class RetroTree(RetroTreeABC):
                         self._found += 1
                         return self._prepare_path(node)
                     elif depth < self._depth:  # expand if depth limit not reached
+                        self._expand(node)
                         self._update_visits(node)  # mark node as visited
                         self._update_actions(node)
-                        self._expand(node)
                         break
                     else:
                         self._update_visits(node)

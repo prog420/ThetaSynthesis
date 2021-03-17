@@ -19,7 +19,7 @@
 #
 from pkg_resources import resource_stream
 from pickle import load
-from typing import TYPE_CHECKING, Tuple
+from typing import TYPE_CHECKING, Tuple, List
 
 from CGRtools import Reactor
 from pytorch_lightning import LightningModule
@@ -90,16 +90,11 @@ class RulesNet(LightningModule):
     def transform(self, x: "MoleculeContainer"):
         return from_numpy(self.frag.transform([x])).float()
 
-    def get_reactors(self, x: 'MoleculeContainer') -> Tuple[float, Reactor]:
+    def get_reactors(self, x: 'MoleculeContainer') -> List[Tuple[float, Reactor]]:
         # ordered by patent's frequencies reactors
-        rules_bit_vector = self.predict(x)
+        rules_bit_vector = self.forward(x)
         values, indices = sort(rules_bit_vector, descending=True)
-        yield from (
-            (p, self.reactors[index])
-            for prob, index
-            in zip(values.squeeze(0), indices.squeeze(0))
-            if (p := prob.item()) == 1
-        )
+        return [(p, self.reactors[index.item()]) for prob, index in zip(values.squeeze(0), indices.squeeze(0)) if (p := prob.item()) > .5]
 
 
 __all__ = ['RulesNet']

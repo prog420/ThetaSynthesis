@@ -25,9 +25,9 @@ from .synthon.abc import SynthonABC
 class Scroll(ScrollABC):
     __slots__ = ('_synthons', '_history', '_expand', '_closures', '_others')
 
-    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], /):
+    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], others: int = 0, /):
         self._synthons = synthons
-        self._others = synthons[1:]
+        self._others = others
         self._history = history
         self._closures = set()  # expanded synthons available in history
 
@@ -38,7 +38,8 @@ class Scroll(ScrollABC):
             self._expand = iter(current)
 
     def __call__(self, **kwargs):
-        self._synthons[0](**kwargs)  # default scroll just transfer params into first synthon.
+        for synth in self._synthons[-self._others:]:
+            synth(**kwargs)  # default scroll just transfer params into all new added synthons.
 
     def __bool__(self):
         """
@@ -49,12 +50,10 @@ class Scroll(ScrollABC):
     def __len__(self):
         return len(self._synthons)
 
-    def __float__(self, **kwargs):
+    def __float__(self):
         """
         Worse value from all synthons in the scroll
         """
-        for mol in self._synthons:
-            mol(**kwargs)
         return min(float(x) for x in self._synthons)
 
     @property
@@ -71,7 +70,7 @@ class Scroll(ScrollABC):
                 continue
             history = self._history.copy()
             history.update(new)
-            return prob, type(self)((*self._others, *new), history)
+            return prob, type(self)((*self._synthons[1:], *new), history, len(new))
         raise StopIteration('End of possible reactions has reached')
 
     def __hash__(self):

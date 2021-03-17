@@ -17,16 +17,19 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from itertools import chain, zip_longest
+from collections import deque
 from pkg_resources import resource_stream
 from pickle import load
-
+from typing import Optional, Tuple, TYPE_CHECKING
 from .rules import RulesNet
 from ..abc import SynthonABC
 
+if TYPE_CHECKING:
+    from CGRtools import MoleculeContainer
+
 
 class RolloutSynthon(SynthonABC):
-    __slots__ = ('_depth', )
+    __slots__ = ('_depth', '_float', '__dict__')
     __net__ = None
     __bb__ = None
 
@@ -41,28 +44,37 @@ class RolloutSynthon(SynthonABC):
         self._depth = finish
 
     def __float__(self):
+        if getattr(self, '_float', None) is not None:
+            return self._float
         molecule = self._molecule
-        for _ in range(self._depth):
-            i = chain.from_iterable(zip_longest((tuple(reactor([molecule])) for _, reactor in self.__net__.get_reactors(molecule))))
-            try:
-                reaction = next(x for x in i if x)[0]
-            except StopIteration:
+        max_depth = self._depth
+        queue = deque([(molecule, 0)])
+        while queue:
+            curr, depth = queue.popleft()
+            depth = depth + 1
+            if depth > max_depth:
+                self._float = -1.
                 return -1.
-            molecule = next(iter(reaction.products))
-            if molecule in self.__bb__:
-                return 1.
-        return -1.
+            queue.extend((x, depth) for x in self._get_products(curr) if str(x) not in self.__bb__)
+        self._float = 1.
+        return 1.
+
+    def _get_products(self, molecule: 'MoleculeContainer') -> Tuple[Optional['MoleculeContainer'], ]:
+        for _, reactor in self.__net__.get_reactors(molecule):
+            for r in reactor([molecule]):
+                return r.products
+            else:
+                continue
+        return ()
 
     def __iter__(self):
         molecule = self._molecule
         for prob, reactor in self.__net__.get_reactors(self._molecule):
             for reaction in reactor([molecule], automorphism_filter=False):
-                mols = []
                 for mol in reaction.products:
                     mol.kekule()
                     mol.thiele()
-                    mols.append(mol)
-                yield prob, tuple(type(self)(mol) for mol in mols)
+                yield prob, tuple(type(self)(mol) for mol in reaction.products)
 
     def __bool__(self):
         return self._molecule in self.__bb__
