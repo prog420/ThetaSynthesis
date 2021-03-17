@@ -20,7 +20,7 @@
 from collections import deque
 from pkg_resources import resource_stream
 from pickle import load
-from typing import Optional, Tuple, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING
 from .rules import RulesNet
 from ..abc import SynthonABC
 
@@ -40,13 +40,18 @@ class RolloutSynthon(SynthonABC):
             cls.__bb__ = frozenset(load(resource_stream(__name__, 'data/bb.pickle')))
         return super().__new__(cls, *args, **kwargs)
 
+    def __init__(self, molecule, /):
+        super().__init__(molecule)
+        self._float = None
+
     def __call__(self, finish=10, **kwargs):
         self._depth = finish
 
     def __float__(self):
-        if getattr(self, '_float', None) is not None:
+        if self._float is not None:
             return self._float
         molecule = self._molecule
+        seen = set()
         max_depth = self._depth
         queue = deque([(molecule, 0)])
         while queue:
@@ -55,16 +60,15 @@ class RolloutSynthon(SynthonABC):
             if depth > max_depth:
                 self._float = -1.
                 return -1.
-            queue.extend((x, depth) for x in self._get_products(curr) if str(x) not in self.__bb__)
+            seen.add(curr)
+            queue.extend((x, depth) for x in seen.difference(self._get_products(curr)) if str(x) not in self.__bb__)
         self._float = 1.
         return 1.
 
-    def _get_products(self, molecule: 'MoleculeContainer') -> Tuple[Optional['MoleculeContainer'], ]:
+    def _get_products(self, molecule: 'MoleculeContainer') -> Tuple['MoleculeContainer', ...]:
         for _, reactor in self.__net__.get_reactors(molecule):
             for r in reactor([molecule]):
                 return r.products
-            else:
-                continue
         return ()
 
     def __iter__(self):
