@@ -37,9 +37,7 @@ class RolloutSynthon(SynthonABC):
         if cls.__net__ is None:
             cls.__net__ = RulesNet.load_from_checkpoint(resource_stream(__name__, 'data/net.ckpt'))
             cls.__net__.eval()
-            from CGRtools import smiles
-            cls.__bb__ = {smiles('Oc1ccccc1')}
-            # frozenset(load(resource_stream(__name__, 'data/bb.pickle')))
+            cls.__bb__ = frozenset(load(resource_stream(__name__, 'data/bb.pickle')))
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, molecule, /):
@@ -85,10 +83,11 @@ class RolloutSynthon(SynthonABC):
                 for mol in reaction.products:
                     mol.kekule()
                     mol.thiele()
-                if reaction.products in seen:
+                products = frozenset(reaction.products)
+                if products in seen:
                     continue
-                seen.add(frozenset(reaction.products))
-                yield prob, tuple(type(self)(mol) for mol in reaction.products)
+                seen.add(products)
+                yield prob, tuple(type(self)(mol) for mol in products)
 
     def __bool__(self):
         return self._molecule in self.__bb__
