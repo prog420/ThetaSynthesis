@@ -95,7 +95,7 @@ class RulesNet(LightningModule):
         rules_bit_vector = self.forward(x)
         values, indices = sort(rules_bit_vector, descending=True)
         return [(p, self.reactors[index.item()]) for prob, index
-                in zip(values.squeeze(0), indices.squeeze(0)) if (p := prob.item()) > .5]
+                in zip(values.squeeze(0), indices.squeeze(0)) if (p := prob.item()) > .1][:50]
 
 
 __all__ = ['RulesNet']
