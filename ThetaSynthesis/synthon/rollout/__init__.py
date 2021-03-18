@@ -85,10 +85,11 @@ class RolloutSynthon(SynthonABC):
                 for mol in reaction.products:
                     mol.kekule()
                     mol.thiele()
-                if frozenset(reaction.products) in seen:
+                products = frozenset(reaction.products)
+                if products in seen:
                     continue
-                seen.add(frozenset(reaction.products))
-                yield prob, tuple(type(self)(mol) for mol in reaction.products)
+                seen.add(products)
+                yield prob, tuple(type(self)(mol) for mol in products)
 
     def __bool__(self):
         return self._molecule in self.__bb__

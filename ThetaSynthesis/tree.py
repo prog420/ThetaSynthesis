@@ -136,7 +136,7 @@ class RetroTree(RetroTreeABC):
         return tuple(reversed(tmp))
 
     def __next__(self):
-        while self._expanded < self._size:
+        while self._expanded < self._free_node <= self._size:
             self._iterations += 1
             if self._iterations > self._limit:
                 raise StopIteration('Iterations limit exceeded. '
@@ -182,19 +182,17 @@ class RetroTree(RetroTreeABC):
             nodes = {k: v for k, v in self._nodes.items()}
 
         lst = ['id', 'visits', 'value', 'smiles in queue']
-        if verbose == 2:
-            ...
-        elif verbose == 1:
+        if verbose == 1:
             lst = lst[:2]
         elif verbose == 0:
             lst = lst[:1]
 
-        lambdas = [lambda x: x, lambda x: self._visits[x], lambda x: x.__repr__(), lambda x: float(self._nodes[x])]
+        lambdas = [lambda x: x, lambda x: self._visits[x], lambda x: repr(x), lambda x: float(self._nodes[x])]
 
         nodes_with_attrs = {
             k: '\n'.join(f'{x}: {z(y)}' for x, y, z in zip(lst, [k, k, v, k], lambdas))
             for k, v
-            in self._nodes.items()
+            in nodes.items()
         }
         pred = self._pred
         g = pgv.AGraph(directed=True)
