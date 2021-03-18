@@ -20,7 +20,7 @@
 from collections import deque
 from pkg_resources import resource_stream
 from pickle import load
-from typing import Tuple, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING, Set, FrozenSet
 from .rules import RulesNet
 from ..abc import SynthonABC
 
@@ -37,7 +37,9 @@ class RolloutSynthon(SynthonABC):
         if cls.__net__ is None:
             cls.__net__ = RulesNet.load_from_checkpoint(resource_stream(__name__, 'data/net.ckpt'))
             cls.__net__.eval()
-            cls.__bb__ = frozenset(load(resource_stream(__name__, 'data/bb.pickle')))
+            from CGRtools import smiles
+            cls.__bb__ = {smiles('Oc1ccccc1')}
+            # frozenset(load(resource_stream(__name__, 'data/bb.pickle')))
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, molecule, /):
@@ -77,11 +79,15 @@ class RolloutSynthon(SynthonABC):
 
     def __iter__(self):
         molecule = self._molecule
+        seen: Set[FrozenSet['MoleculeContainer']] = set()
         for prob, reactor in self.__net__.get_reactors(self._molecule):
             for reaction in reactor([molecule], automorphism_filter=False):
                 for mol in reaction.products:
                     mol.kekule()
                     mol.thiele()
+                if reaction.products in seen:
+                    continue
+                seen.add(frozenset(reaction.products))
                 yield prob, tuple(type(self)(mol) for mol in reaction.products)
 
     def __bool__(self):
