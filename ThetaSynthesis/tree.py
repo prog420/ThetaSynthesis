@@ -176,16 +176,23 @@ class RetroTree(RetroTreeABC):
 
     def visualize(self, draw_format: str = 'png', only_visited: bool = False, verbose: int = 2):
         import pygraphviz as pgv
+        from warnings import warn
+
+        lst = ['id', 'visits', 'smiles in queue', 'value']
+        if verbose == 3 and not only_visited:
+            warn('Verbose = 3 option can be used only for visited nodes', UserWarning)
+            only_visited = True
+        elif verbose == 2:
+            lst = lst[:3]
+        elif verbose == 1:
+            lst = lst[:2]
+        elif verbose == 0:
+            lst = lst[:1]
+
         if only_visited:
             nodes = {k: v for k, v in self._nodes.items() if self._succ[k]}
         else:
             nodes = {k: v for k, v in self._nodes.items()}
-
-        lst = ['id', 'visits', 'value', 'smiles in queue']
-        if verbose == 1:
-            lst = lst[:2]
-        elif verbose == 0:
-            lst = lst[:1]
 
         lambdas = [lambda x: x, lambda x: self._visits[x], lambda x: repr(x), lambda x: float(self._nodes[x])]
 
