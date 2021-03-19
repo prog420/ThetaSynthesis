@@ -67,7 +67,7 @@ class RolloutSynthon(SynthonABC):
             if not result:
                 self._float = -1.
                 return self._float
-            queue.extend((x, depth) for x in set(result).difference(seen) if str(x) not in self.__bb__)
+            queue.extend((x, depth) for x in set(result).difference(seen) if str(x) not in self.__bb__ and len(x) >= 6)
         self._float = 1.
         return self._float
 
@@ -85,7 +85,7 @@ class RolloutSynthon(SynthonABC):
                 for mol in reaction.products:
                     mol.kekule()
                     mol.thiele()
-                products = frozenset(reaction.products)
+                products = frozenset(mol for mol in reaction.products if len(mol) >= 6)
                 if products in seen:
                     continue
                 seen.add(products)

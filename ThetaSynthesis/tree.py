@@ -20,7 +20,7 @@
 from CGRtools import MoleculeContainer, ReactionContainer
 from math import sqrt
 from tqdm import tqdm
-from typing import Type, Tuple
+from typing import Type, Tuple, Optional
 from .abc import RetroTreeABC
 from .scroll import Scroll
 from .synthon.abc import SynthonABC
@@ -174,7 +174,8 @@ class RetroTree(RetroTreeABC):
                f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \
                f'Found paths: {self._found}'
 
-    def visualize(self, draw_format: str = 'png', only_visited: bool = False, verbose: int = 2):
+    def visualize(self, draw_format: str = 'png', prog: Optional[str] = None,
+                  only_visited: bool = False, verbose: int = 2):
         import pygraphviz as pgv
         from warnings import warn
 
@@ -210,7 +211,7 @@ class RetroTree(RetroTreeABC):
             node.attr['label'] = nodes_with_attrs[k]
 
         g.layout(prog='dot')
-        return g.draw(format=draw_format)
+        return g.draw(format=draw_format, prog=prog)
 
 
 __all__ = ['RetroTree']
