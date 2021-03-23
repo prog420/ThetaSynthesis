@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 #
-#  Copyright 2020-2021 Alexander Sizov <murkyrussian@gmail.com>
+#  Copyright 2021 Alexander Sizov <murkyrussian@gmail.com>
 #  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
 #  This file is part of ThetaSynthesis.
 #
@@ -17,89 +17,60 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from pkg_resources import resource_stream
-from pickle import load
-from typing import TYPE_CHECKING, Tuple, List
-
-from CGRtools import Reactor
-from pytorch_lightning import LightningModule
-from pytorch_lightning.metrics.functional import accuracy
-from StructureFingerprint import LinearFingerprint
-from torch import from_numpy, sort
-from torch.nn import ReLU, Sigmoid, Linear, Sequential
-from torch.nn.functional import binary_cross_entropy
-from torch.optim import Adam
-
-if TYPE_CHECKING:
-    from CGRtools import MoleculeContainer
+from CGRtools import QueryContainer, ReactionContainer
+from CGRtools.periodictable import ListElement
 
 
-class RulesNet(LightningModule):
-    def __init__(self):
-        super().__init__()
-        l1 = Linear(4096, 2000)
-        l2 = Linear(2000, 2272)
+rules = []
 
-        act = ReLU(inplace=True)
+# acyl group addition
+q = QueryContainer()
+q.add_atom('C', neighbors=1)
+q.add_atom('C')
+q.add_atom('O')
+q.add_atom(ListElement(['N', 'O']))
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 2)
+q.add_bond(2, 4, 1)
 
-        self.frag = LinearFingerprint(length=4096, min_radius=2, max_radius=4, number_bit_pairs=4)
-        self.reactors = [Reactor(x, delete_atoms=True)
-                         for x in load(resource_stream(__name__, 'data/rules_reverse.pickle'))]
+p = QueryContainer()
+p.add_atom('A', _map=4)
 
-        self.body = Sequential(l1, act, l2)
-        self.policy_head = Sigmoid()
+r = ReactionContainer([q], [p])
+rules.append(r)
 
-    def forward(self, x):
-        return self.policy_head(self.body(self.transform(x)))
+# aryl nitro reduction
+q = QueryContainer()
+q.add_atom('N', neighbors=1)
+q.add_atom('C', hybridization=4, heteroatoms=1)
+q.add_bond(1, 2, 1)
 
-    def predict(self, x):
-        boo = self.forward(x) > 0.5
-        return boo.float()
+p = QueryContainer()
+p.add_atom('N', charge=1)
+p.add_atom('C')
+p.add_atom('O', charge=-1)
+p.add_atom('O')
+p.add_bond(1, 2, 1)
+p.add_bond(1, 3, 1)
+p.add_bond(1, 4, 2)
 
-    def training_step(self, batch, batch_idx):
-        loss, ba = self._loss(batch, batch_idx)
-        self.log('loss', loss)
-        self.log('ba', ba, prog_bar=True)
-        return loss
+r = ReactionContainer([q], [p])
+rules.append(r)
 
-    def validation_step(self, batch, batch_idx):
-        loss, ba = self._loss(batch, batch_idx)
-        self.log('val_loss', loss)
-        self.log('val_ba', ba, prog_bar=True)
-        return loss
+# aryl nitration
+q = QueryContainer()
+q.add_atom('N', charge=1)
+q.add_atom('C', hybridization=4, heteroatoms=1)
+q.add_atom('O', charge=-1)
+q.add_atom('O')
+q.add_bond(1, 2, 1)
+q.add_bond(1, 3, 1)
+q.add_bond(1, 4, 2)
 
-    def test_step(self, batch, batch_idx):
-        loss, ba = self._loss(batch, batch_idx)
-        self.log('test_loss', loss)
-        self.log('test_ba', ba)
-        return loss
+p = QueryContainer()
+p.add_atom('C', _map=2)
 
-    def configure_optimizers(self):
-        optimizer = Adam(self.parameters(), lr=1e-3)
-        return optimizer
+r = ReactionContainer([q], [p])
+rules.append(r)
 
-    def _loss(self, batch, batch_idx):
-        x, y = batch
-        y_pred = self.policy_head(self.body(x))
-        loss = binary_cross_entropy(y_pred, y)
-
-        y_pred_ = (y_pred > 0.5).float()
-        ba = accuracy(y_pred_, y, class_reduction='macro')
-        return loss, ba
-
-    def transform(self, x: "MoleculeContainer"):
-        return from_numpy(self.frag.transform([x])).float()
-
-    def get_reactors(self, x: 'MoleculeContainer') -> List[Tuple[float, Reactor]]:
-        # ordered by patent's frequencies reactors
-        rules_bit_vector = self.forward(x)
-        values, indices = sort(rules_bit_vector, descending=True)
-        return [
-            (p, self.reactors[index.item()])
-            for prob, index
-            in zip(values.squeeze(0), indices.squeeze(0))
-            if (p := prob.item()) > .5
-        ]
-
-
-__all__ = ['RulesNet']
+__all__ = ['rules']
