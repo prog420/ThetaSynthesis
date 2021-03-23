@@ -20,7 +20,7 @@
 from CGRtools import MoleculeContainer, ReactionContainer
 from math import sqrt
 from tqdm import tqdm
-from typing import Type, Tuple
+from typing import Type, Tuple, Optional
 from .abc import RetroTreeABC
 from .scroll import Scroll
 from .synthon.abc import SynthonABC
@@ -30,7 +30,7 @@ class RetroTree(RetroTreeABC):
     __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found', '_tqdm', '_node_depth')
 
     def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
-                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e4):
+                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e6):
         """
         :param target: target molecule
         :param c_puct: breadth/depth criterion
@@ -136,11 +136,10 @@ class RetroTree(RetroTreeABC):
         return tuple(reversed(tmp))
 
     def __next__(self):
-        while self._expanded < self._size:
+        while self._expanded < self._free_node:
             self._iterations += 1
             if self._iterations > self._limit:
-                raise StopIteration('Iterations limit exceeded. '
-                                    f'number of unvisited nodes: {self._free_node - self._expanded}')
+                raise StopIteration('Iterations limit exceeded. \n' + self.report())
             self._tqdm.update()
             depth = 0
             node = 1
@@ -158,7 +157,7 @@ class RetroTree(RetroTreeABC):
                         # I dunno: self._update_actions(node)
                         self._found += 1
                         return self._prepare_path(node)
-                    elif depth < self._depth:  # expand if depth limit not reached
+                    elif depth < self._depth and self._free_node < self._size:  # expand if depth limit not reached
                         self._expand(node)
                         self._update_visits(node)  # mark node as visited
                         self._update_actions(node)
@@ -167,34 +166,40 @@ class RetroTree(RetroTreeABC):
                         self._update_visits(node)
                         self._update_actions(node)
                         break
-        raise StopIteration('Max tree size exceeded or all possible paths found')
+        raise StopIteration('Max tree size exceeded or all possible paths found' + self.report())
 
     def report(self):
         return f'Tree for: {self._nodes[1]}\n' \
                f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \
                f'Found paths: {self._found}'
 
-    def visualize(self, draw_format: str = 'png', only_visited: bool = False, verbose: int = 2):
+    def visualize(self, draw_format: str = 'png', prog: Optional[str] = None,
+                  only_visited: bool = False, verbose: int = 2):
         import pygraphviz as pgv
-        if only_visited:
-            nodes = {k: v for k, v in self._nodes.items() if self._succ[k]}
-        else:
-            nodes = {k: v for k, v in self._nodes.items()}
+        from warnings import warn
 
-        lst = ['id', 'visits', 'value', 'smiles in queue']
-        if verbose == 2:
-            ...
+        lst = ['id', 'visits', 'smiles in queue', 'value']
+        if verbose == 3 and not only_visited:
+            warn('Verbose = 3 option can be used only for visited nodes', UserWarning)
+            only_visited = True
+        elif verbose == 2:
+            lst = lst[:3]
         elif verbose == 1:
             lst = lst[:2]
         elif verbose == 0:
             lst = lst[:1]
 
-        lambdas = [lambda x: x, lambda x: self._visits[x], lambda x: x.__repr__(), lambda x: float(self._nodes[x])]
+        if only_visited:
+            nodes = {k: v for k, v in self._nodes.items() if self._succ[k]}
+        else:
+            nodes = {k: v for k, v in self._nodes.items()}
+
+        lambdas = [lambda x: x, lambda x: self._visits[x], lambda x: repr(x), lambda x: float(self._nodes[x])]
 
         nodes_with_attrs = {
             k: '\n'.join(f'{x}: {z(y)}' for x, y, z in zip(lst, [k, k, v, k], lambdas))
             for k, v
-            in self._nodes.items()
+            in nodes.items()
         }
         pred = self._pred
         g = pgv.AGraph(directed=True)
@@ -205,7 +210,7 @@ class RetroTree(RetroTreeABC):
             node.attr['label'] = nodes_with_attrs[k]
 
         g.layout(prog='dot')
-        return g.draw(format=draw_format)
+        return g.draw(format=draw_format, prog=prog)
 
 
 __all__ = ['RetroTree']

@@ -65,6 +65,9 @@ class SynthonABC(ABC):
         Represent an opportunity to synthesize a molecule from commercially available compounds.
         """
 
+    def __len__(self):
+        return len(self._molecule)
+
     def __hash__(self):
         return hash(self._molecule)
 

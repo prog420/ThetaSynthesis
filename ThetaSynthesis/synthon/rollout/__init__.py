@@ -20,12 +20,12 @@
 from collections import deque
 from pkg_resources import resource_stream
 from pickle import load
-from typing import Tuple, TYPE_CHECKING
+from typing import Tuple, TYPE_CHECKING, Set, FrozenSet
 from .rules import RulesNet
 from ..abc import SynthonABC
 
 if TYPE_CHECKING:
-    from CGRtools import MoleculeContainer
+    from CGRtools import MoleculeContainer, Reactor
 
 
 class RolloutSynthon(SynthonABC):
@@ -65,7 +65,7 @@ class RolloutSynthon(SynthonABC):
             if not result:
                 self._float = -1.
                 return self._float
-            queue.extend((x, depth) for x in set(result).difference(seen) if str(x) not in self.__bb__)
+            queue.extend((x, depth) for x in set(result).difference(seen) if str(x) not in self.__bb__ and len(x) >= 6)
         self._float = 1.
         return self._float
 
@@ -77,12 +77,17 @@ class RolloutSynthon(SynthonABC):
 
     def __iter__(self):
         molecule = self._molecule
+        seen: Set[FrozenSet['MoleculeContainer']] = set()
         for prob, reactor in self.__net__.get_reactors(self._molecule):
             for reaction in reactor([molecule], automorphism_filter=False):
                 for mol in reaction.products:
                     mol.kekule()
                     mol.thiele()
-                yield prob, tuple(type(self)(mol) for mol in reaction.products)
+                products = frozenset(mol for mol in reaction.products if len(mol) >= 6)
+                if products in seen:
+                    continue
+                seen.add(products)
+                yield prob, tuple(type(self)(mol) for mol in products)
 
     def __bool__(self):
         return self._molecule in self.__bb__

@@ -26,7 +26,7 @@ setup(
     version='0.1.0',
     packages=['ThetaSynthesis', 'ThetaSynthesis.abc', 'ThetaSynthesis.synthon', 'ThetaSynthesis.synthon.abc'],
     python_requires='>=3.8.1',
-    install_requires=['CGRtools>=4.1,<4.2', 'tqdm'],
+    install_requires=['CGRtools>=4.1,<4.2', 'tqdm', 'StructureFingerprint'],
     package_data={'ThetaSynthesis.synthon.rollout': ['data/*']},
     zip_safe=True,
     license='LGPLv3',
