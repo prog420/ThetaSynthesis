@@ -30,7 +30,7 @@ class RetroTree(RetroTreeABC):
     __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found', '_tqdm', '_node_depth')
 
     def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
-                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e4):
+                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e6):
         """
         :param target: target molecule
         :param c_puct: breadth/depth criterion
@@ -136,11 +136,10 @@ class RetroTree(RetroTreeABC):
         return tuple(reversed(tmp))
 
     def __next__(self):
-        while self._expanded < self._free_node <= self._size:
+        while self._expanded < self._free_node:
             self._iterations += 1
             if self._iterations > self._limit:
-                raise StopIteration('Iterations limit exceeded. '
-                                    f'number of unvisited nodes: {self._free_node - self._expanded}')
+                raise StopIteration('Iterations limit exceeded. \n' + self.report())
             self._tqdm.update()
             depth = 0
             node = 1
@@ -158,7 +157,7 @@ class RetroTree(RetroTreeABC):
                         # I dunno: self._update_actions(node)
                         self._found += 1
                         return self._prepare_path(node)
-                    elif depth < self._depth:  # expand if depth limit not reached
+                    elif depth < self._depth and self._free_node < self._size:  # expand if depth limit not reached
                         self._expand(node)
                         self._update_visits(node)  # mark node as visited
                         self._update_actions(node)
@@ -167,7 +166,7 @@ class RetroTree(RetroTreeABC):
                         self._update_visits(node)
                         self._update_actions(node)
                         break
-        raise StopIteration('Max tree size exceeded or all possible paths found')
+        raise StopIteration('Max tree size exceeded or all possible paths found' + self.report())
 
     def report(self):
         return f'Tree for: {self._nodes[1]}\n' \

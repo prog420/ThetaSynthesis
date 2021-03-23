@@ -25,7 +25,7 @@ from .rules import RulesNet
 from ..abc import SynthonABC
 
 if TYPE_CHECKING:
-    from CGRtools import MoleculeContainer
+    from CGRtools import MoleculeContainer, Reactor
 
 
 class RolloutSynthon(SynthonABC):
@@ -37,9 +37,7 @@ class RolloutSynthon(SynthonABC):
         if cls.__net__ is None:
             cls.__net__ = RulesNet.load_from_checkpoint(resource_stream(__name__, 'data/net.ckpt'))
             cls.__net__.eval()
-            from CGRtools import smiles
-            cls.__bb__ = {smiles('Oc1ccccc1')}
-            # frozenset(load(resource_stream(__name__, 'data/bb.pickle')))
+            cls.__bb__ = frozenset(load(resource_stream(__name__, 'data/bb.pickle')))
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, molecule, /):

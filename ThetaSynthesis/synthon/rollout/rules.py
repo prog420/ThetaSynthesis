@@ -94,8 +94,12 @@ class RulesNet(LightningModule):
         # ordered by patent's frequencies reactors
         rules_bit_vector = self.forward(x)
         values, indices = sort(rules_bit_vector, descending=True)
-        return [(p, self.reactors[index.item()]) for prob, index
-                in zip(values.squeeze(0), indices.squeeze(0)) if (p := prob.item()) > .13]
+        return [
+            (p, self.reactors[index.item()])
+            for prob, index
+            in zip(values.squeeze(0), indices.squeeze(0))
+            if (p := prob.item()) > .5
+        ]
 
 
 __all__ = ['RulesNet']
