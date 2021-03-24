@@ -65,8 +65,9 @@ class RolloutSynthon(SynthonABC):
                 self._float = -.5
                 return self._float
             seen.add(curr)
-            result = next(x for _, r in self.__reactors__ for x in r([curr])).products
-            if not result:
+            try:
+                result = next(x for _, r in self.__reactors__ for x in r([curr])).products
+            except StopIteration:
                 self._float = -1.
                 return self._float
             if seen.isdisjoint(result):
