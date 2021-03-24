@@ -19,6 +19,7 @@
 #
 from CGRtools import QueryContainer, ReactionContainer
 from CGRtools.periodictable import ListElement
+from CGRtools.containers.bonds import QueryBond
 
 
 rules = []
@@ -41,7 +42,7 @@ rules.append(r)
 
 # acyl group addition with aromatic carbon's case
 q = QueryContainer()
-q.add_atom('C', neighbors=1)
+q.add_atom('C')
 q.add_atom('C')
 q.add_atom('O')
 q.add_atom('C', hybridization=4)
@@ -120,11 +121,96 @@ q.add_bond(1, 2, 2)
 q.add_bond(2, 3, 1)
 
 p = QueryContainer()
-p.add_atom('C', _map=1)
+p.add_atom('C')
 p.add_atom('O')
 p.add_bond(1, 2, 2)
 
 r = ReactionContainer([q], [p])
 rules.append(r)
+
+# addition of halogen atom into phenol ring (orto)
+q = QueryContainer()
+q.add_atom(ListElement(['O', 'N']), neighbors=1)
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom(ListElement(['Cl', 'F', 'Br', 'I']))
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 4)
+q.add_bond(3, 4, 1)
+
+p = QueryContainer()
+p.add_atom('O', neighbors=1)
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(1, 2, 1)
+p.add_bond(2, 3, 4)
+
+r = ReactionContainer([q], [p])
+rules.append(r)
+
+# addition of halogen atom into phenol ring (para)
+q = QueryContainer()
+q.add_atom(ListElement(['O', 'N']), neighbors=1)
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom(ListElement(['Cl', 'F', 'Br', 'I']))
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 4)
+q.add_bond(3, 4, 4)
+q.add_bond(4, 5, 4)
+q.add_bond(5, 6, 1)
+
+p = QueryContainer()
+p.add_atom('O', neighbors=1)
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(1, 2, 1)
+p.add_bond(2, 3, 4)
+p.add_bond(3, 4, 4)
+p.add_bond(4, 5, 4)
+
+r = ReactionContainer([q], [p])
+rules.append(r)
+
+# Williamson reaction on phenol
+q = QueryContainer()
+q.add_atom('C', hybridization=4)
+q.add_atom('O')
+q.add_atom('C', hybridization=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+
+p = QueryContainer()
+p.add_atom('C')
+p.add_atom('O', neighbors=1)
+p.add_bond(1, 2, 1)
+
+r = ReactionContainer([q], [p])
+rules.append(r)
+
+# hard reduction of ketones
+q = QueryContainer()
+q.add_atom('C', hybridization=4)
+q.add_atom('C', hybridization=1, neighbors=2)
+q.add_atom('C')
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+
+p = QueryContainer()
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('O')
+p.add_bond(1, 2, 1)
+p.add_bond(2, 3, 1)
+p.add_bond(2, 4, 2)
+
+r = ReactionContainer([q], [p])
+rules.append(r)
+
 
 __all__ = ['rules']
