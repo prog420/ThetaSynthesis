@@ -19,8 +19,6 @@
 #
 from CGRtools import QueryContainer, ReactionContainer
 from CGRtools.periodictable import ListElement
-from CGRtools.containers.bonds import QueryBond
-
 
 rules = []
 
@@ -102,7 +100,7 @@ rules.append(r)
 # Beckmann rearrangement (oxime -> amide)
 q = QueryContainer()
 q.add_atom('C')
-q.add_atom('N')
+q.add_atom('N', neighbors=2)
 q.add_atom('O')
 q.add_atom('C')
 q.add_bond(1, 2, 1)
@@ -139,7 +137,7 @@ rules.append(r)
 
 # addition of halogen atom into phenol ring (orto)
 q = QueryContainer()
-q.add_atom(ListElement(['O', 'N']), neighbors=1)
+q.add_atom(ListElement(['O', 'N']), hybridization=1, heteroatoms=1)
 q.add_atom('C')
 q.add_atom('C')
 q.add_atom(ListElement(['Cl', 'F', 'Br', 'I']))
@@ -159,7 +157,7 @@ rules.append(r)
 
 # addition of halogen atom into phenol ring (para)
 q = QueryContainer()
-q.add_atom(ListElement(['O', 'N']), neighbors=1)
+q.add_atom(ListElement(['O', 'N']), hybridization=1, heteroatoms=1)
 q.add_atom('C')
 q.add_atom('C')
 q.add_atom('C')
@@ -261,6 +259,73 @@ p2.add_atom('Cl')
 p2.add_bond(4, 5, 1)
 
 r = ReactionContainer([q], [p1, p2])
+rules.append(r)
+
+# reduction of carboxylic acid
+q = QueryContainer()
+q.add_atom('C')
+q.add_atom('C', neighbors=2)
+q.add_atom('O', neighbors=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+
+p = QueryContainer()
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('O')
+p.add_atom('O')
+p.add_bond(1, 2, 1)
+p.add_bond(2, 3, 1)
+p.add_bond(2, 4, 2)
+
+r = ReactionContainer([q], [p])
+rules.append(r)
+
+# halogenation of alcohols
+q = QueryContainer()
+q.add_atom('C', hybridization=1)
+q.add_atom('Cl')
+q.add_bond(1, 2, 1)
+
+p = QueryContainer()
+p.add_atom('C')
+p.add_atom('O')
+p.add_bond(1, 2, 1)
+
+r = ReactionContainer([q], [p])
+rules.append(r)
+
+# Kolbe nitrilation
+q = QueryContainer()
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('N')
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 3)
+
+p = QueryContainer()
+p.add_atom('C')
+p.add_atom('Cl')
+p.add_bond(1, 2, 1)
+
+r = ReactionContainer([q], [p])
+rules.append(r)
+
+# Nitrile oxydation
+q = QueryContainer()
+q.add_atom('C')
+q.add_atom('O')
+q.add_atom('O')
+q.add_bond(1, 2, 1)
+q.add_bond(1, 3, 2)
+
+p = QueryContainer()
+p.add_atom('C')
+p.add_atom('N')
+p.add_bond(1, 2, 3)
+
+
+r = ReactionContainer([q], [p])
 rules.append(r)
 
 
