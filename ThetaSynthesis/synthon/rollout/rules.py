@@ -40,7 +40,7 @@ p.add_atom('A', _map=4)
 r = ReactionContainer([q], [p])
 rules.append(r)
 
-# acyl group addition with aromatic carbon's case
+# acyl group addition with aromatic carbon's case (Friedel-Crafts)
 q = QueryContainer()
 q.add_atom('C')
 q.add_atom('C')
@@ -50,10 +50,19 @@ q.add_bond(1, 2, 1)
 q.add_bond(2, 3, 2)
 q.add_bond(2, 4, 1)
 
-p = QueryContainer()
-p.add_atom('C', _map=4)
+p1 = QueryContainer()
+p1.add_atom('C')
+p1.add_atom('C')
+p1.add_atom('O')
+p1.add_atom('Cl', _map=5)
+p1.add_bond(1, 2, 1)
+p1.add_bond(2, 3, 2)
+p1.add_bond(2, 5, 1)
 
-r = ReactionContainer([q], [p])
+p2 = QueryContainer()
+p2.add_atom('C', _map=4)
+
+r = ReactionContainer([q], [p1, p2])
 rules.append(r)
 
 # aryl nitro reduction
