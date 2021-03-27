@@ -92,6 +92,7 @@ class RolloutSynthon(SynthonABC):
                 if products in seen:
                     continue
                 seen.add(products)
+
                 yield prob, tuple(type(self)(mol) for mol in products)
 
     def __bool__(self):

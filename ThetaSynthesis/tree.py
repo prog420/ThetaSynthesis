@@ -168,6 +168,9 @@ class RetroTree(RetroTreeABC):
                         break
         raise StopIteration('Max tree size exceeded or all possible paths found' + self.report())
 
+    def find_target(self, molecule: 'MoleculeContainer'):
+        return [idx for idx, node in self._nodes.items() if molecule == node._synthons[0]._molecule]
+
     def report(self):
         return f'Tree for: {self._nodes[1]}\n' \
                f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \

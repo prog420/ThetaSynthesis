@@ -137,10 +137,10 @@ rules.append(r)
 
 # addition of halogen atom into phenol ring (orto)
 q = QueryContainer()
-q.add_atom(ListElement(['O', 'N']), hybridization=1, heteroatoms=1)
+q.add_atom(ListElement(['O', 'N']), hybridization=1, heteroatoms=0)
 q.add_atom('C')
 q.add_atom('C')
-q.add_atom(ListElement(['Cl', 'F', 'Br', 'I']))
+q.add_atom(ListElement(['Cl', 'F', 'Br', 'I']), neighbors=1)
 q.add_bond(1, 2, 1)
 q.add_bond(2, 3, 4)
 q.add_bond(3, 4, 1)
@@ -157,12 +157,12 @@ rules.append(r)
 
 # addition of halogen atom into phenol ring (para)
 q = QueryContainer()
-q.add_atom(ListElement(['O', 'N']), hybridization=1, heteroatoms=1)
+q.add_atom(ListElement(['O', 'N']), hybridization=1, heteroatoms=0)
 q.add_atom('C')
 q.add_atom('C')
 q.add_atom('C')
 q.add_atom('C')
-q.add_atom(ListElement(['Cl', 'F', 'Br', 'I']))
+q.add_atom(ListElement(['Cl', 'F', 'Br', 'I']), neighbors=1)
 q.add_bond(1, 2, 1)
 q.add_bond(2, 3, 4)
 q.add_bond(3, 4, 4)
@@ -198,6 +198,8 @@ p1.add_bond(1, 2, 1)
 
 p2 = QueryContainer()
 p2.add_atom('C', _map=3)
+p2.add_atom('Cl')
+p2.add_bond(3, 4, 1)
 
 r = ReactionContainer([q], [p1, p2])
 rules.append(r)
@@ -348,7 +350,7 @@ p.add_bond(3, 4, 1)
 p.add_bond(4, 5, 1)
 p.add_bond(4, 6, 2)
 
-r = ReactionContainer([q], [p])
+r = ReactionContainer([p], [q])
 rules.append(r)
 
 # Knoevenagel condensation (nitryl and carboxyl case)
@@ -543,6 +545,45 @@ p2.add_bond(8, 9, 2)
 p2.add_bond(8, 10, 1)
 
 r = ReactionContainer([q], [p1, p2])
+rules.append(r)
+
+# alkylation of amine
+q = QueryContainer()
+q.add_atom('C')
+q.add_atom('N')
+q.add_atom('C')
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+
+p1 = QueryContainer()
+p1.add_atom('C')
+p1.add_atom('N')
+p1.add_bond(1, 2, 1)
+
+p2 = QueryContainer()
+p2.add_atom('C', _map=3)
+p2.add_atom('Cl')
+p2.add_bond(3, 4, 1)
+
+r = ReactionContainer([q], [p1, p2])
+rules.append(r)
+
+# sulfamidation
+q = QueryContainer()
+q.add_atom('C', hybridization=4)
+q.add_atom('S')
+q.add_atom('O')
+q.add_atom('O')
+q.add_atom('N', neighbors=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 2)
+q.add_bond(2, 4, 2)
+q.add_bond(2, 5, 1)
+
+p = QueryContainer()
+p.add_atom('C')
+
+r = ReactionContainer([q], [p])
 rules.append(r)
 
 
