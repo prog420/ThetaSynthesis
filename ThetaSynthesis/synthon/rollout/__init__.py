@@ -17,27 +17,28 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+from CGRtools import Reactor
 from collections import deque
+from io import TextIOWrapper
 from pkg_resources import resource_stream
-from pickle import load
-from typing import Tuple, TYPE_CHECKING, Set, FrozenSet
-from .rules import RulesNet
+from typing import TYPE_CHECKING, Set, FrozenSet
+from .rules import rules
 from ..abc import SynthonABC
 
 if TYPE_CHECKING:
-    from CGRtools import MoleculeContainer, Reactor
+    from CGRtools import MoleculeContainer
 
 
 class RolloutSynthon(SynthonABC):
-    __slots__ = ('_depth', '_float', '__dict__')
-    __net__ = None
+    __slots__ = ('_depth', '_float')
     __bb__ = None
+    __reactors__ = None
 
     def __new__(cls, molecule, *args, **kwargs):
-        if cls.__net__ is None:
-            cls.__net__ = RulesNet.load_from_checkpoint(resource_stream(__name__, 'data/net.ckpt'))
-            cls.__net__.eval()
-            cls.__bb__ = frozenset(load(resource_stream(__name__, 'data/bb.pickle')))
+        if cls.__bb__ is None:
+            cls.__bb__ = frozenset(x.strip() for x in
+                                   TextIOWrapper(resource_stream(__name__, 'data/building_blocks.smiles')))
+            cls.__reactors__ = tuple((1., Reactor(x, delete_atoms=True)) for x in rules)
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, molecule, /):
@@ -50,6 +51,9 @@ class RolloutSynthon(SynthonABC):
     def __float__(self):
         if self._float is not None:
             return self._float
+        elif self:
+            self._float = 1.
+            return self._float
         molecule = self._molecule
         seen = set()
         max_depth = self._depth
@@ -61,36 +65,37 @@ class RolloutSynthon(SynthonABC):
                 self._float = -.5
                 return self._float
             seen.add(curr)
-            result = self._get_products(curr)
-            if not result:
+            try:
+                result = next(x for _, r in self.__reactors__ for x in r([curr])).products
+            except StopIteration:
                 self._float = -1.
                 return self._float
-            queue.extend((x, depth) for x in set(result).difference(seen) if str(x) not in self.__bb__ and len(x) >= 6)
+            if seen.isdisjoint(result):
+                for mol in result:
+                    mol.kekule()
+                    mol.thiele()
+                queue.extend((x, depth) for x in result if str(x) not in self.__bb__)
         self._float = 1.
         return self._float
 
-    def _get_products(self, molecule: 'MoleculeContainer') -> Tuple['MoleculeContainer', ...]:
-        for _, reactor in self.__net__.get_reactors(molecule):
-            for r in reactor([molecule]):
-                return r.products
-        return ()
-
     def __iter__(self):
+        if self:
+            return
         molecule = self._molecule
         seen: Set[FrozenSet['MoleculeContainer']] = set()
-        for prob, reactor in self.__net__.get_reactors(self._molecule):
+        for prob, reactor in self.__reactors__:
             for reaction in reactor([molecule], automorphism_filter=False):
                 for mol in reaction.products:
                     mol.kekule()
                     mol.thiele()
-                products = frozenset(mol for mol in reaction.products if len(mol) >= 6)
+                products = frozenset(mol for mol in reaction.products)
                 if products in seen:
                     continue
                 seen.add(products)
                 yield prob, tuple(type(self)(mol) for mol in products)
 
     def __bool__(self):
-        return self._molecule in self.__bb__
+        return str(self._molecule) in self.__bb__
 
 
 __all__ = ['RolloutSynthon']
