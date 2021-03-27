@@ -24,7 +24,8 @@ from setuptools import setup
 setup(
     name='ThetaSynthesis',
     version='0.1.0',
-    packages=['ThetaSynthesis', 'ThetaSynthesis.abc', 'ThetaSynthesis.synthon', 'ThetaSynthesis.synthon.abc'],
+    packages=['ThetaSynthesis', 'ThetaSynthesis.abc', 'ThetaSynthesis.synthon', 'ThetaSynthesis.synthon.abc',
+              'ThetaSynthesis.synthon.rollout', 'ThetaSynthesis.synthon.rollout.rules'],
     python_requires='>=3.8.1',
     install_requires=['CGRtools>=4.1,<4.2', 'tqdm', 'StructureFingerprint'],
     package_data={'ThetaSynthesis.synthon.rollout': ['data/*']},

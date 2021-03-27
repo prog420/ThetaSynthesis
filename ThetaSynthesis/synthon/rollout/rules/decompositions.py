@@ -1,0 +1,133 @@
+# -*- coding: utf-8 -*-
+#
+#  Copyright 2021 Alexander Sizov <murkyrussian@gmail.com>
+#  Copyright 2021 Ramil Nugmanov <nougmanoff@protonmail.com>
+#  This file is part of ThetaSynthesis.
+#
+#  ThetaSynthesis is free software; you can redistribute it and/or modify
+#  it under the terms of the GNU Lesser General Public License as published by
+#  the Free Software Foundation; either version 3 of the License, or
+#  (at your option) any later version.
+#
+#  This program is distributed in the hope that it will be useful,
+#  but WITHOUT ANY WARRANTY; without even the implied warranty of
+#  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+#  GNU Lesser General Public License for more details.
+#
+#  You should have received a copy of the GNU Lesser General Public License
+#  along with this program; if not, see <https://www.gnu.org/licenses/>.
+#
+from CGRtools import QueryContainer, ReactionContainer
+from CGRtools.periodictable import ListElement
+
+
+rules = []
+
+
+def prepare():
+    q_ = QueryContainer()
+    p1_ = QueryContainer()
+    p2_ = QueryContainer()
+    rules.append(ReactionContainer((q_,), (p1_, p2_)))
+    return q_, p1_, p2_
+
+
+# R-amide/ester formation
+# [C](-[N,O;D23;Zs])(-[C])=[O]>>[A].[C]-[C](-[O])=[O]
+q, p1, p2 = prepare()
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('O')
+q.add_atom(ListElement(['N', 'O']), hybridization=1, neighbors=(2, 3))
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 2)
+q.add_bond(2, 4, 1)
+
+p1.add_atom('C')
+p1.add_atom('C')
+p1.add_atom('O')
+p1.add_atom('O', _map=5)
+p1.add_bond(1, 2, 1)
+p1.add_bond(2, 3, 2)
+p1.add_bond(2, 5, 1)
+
+p2.add_atom('A', _map=4)
+
+
+# acyl group addition with aromatic carbon's case (Friedel-Crafts)
+# [C;Za]-[C](-[C])=[O]>>[C].[C]-[C](-[Cl])=[O]
+q, p1, p2 = prepare()
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('O')
+q.add_atom('C', hybridization=4)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 2)
+q.add_bond(2, 4, 1)
+
+p1.add_atom('C')
+p1.add_atom('C')
+p1.add_atom('O')
+p1.add_atom('Cl', _map=5)
+p1.add_bond(1, 2, 1)
+p1.add_bond(2, 3, 2)
+p1.add_bond(2, 5, 1)
+
+p2.add_atom('C', _map=4)
+
+
+# Williamson reaction
+# [C;Za]-[O]-[C;Zs;W0]>>[C]-[Br].[C]-[O]
+q, p1, p2 = prepare()
+q.add_atom('C', hybridization=4)
+q.add_atom('O')
+q.add_atom('C', hybridization=1, heteroatoms=0)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+
+p1.add_atom('C')
+p1.add_atom('O')
+p1.add_bond(1, 2, 1)
+
+p2.add_atom('C', _map=3)
+p2.add_atom('Br')
+p2.add_bond(3, 4, 1)
+
+
+# Buchwald-Hartwig amination
+# [N;D23;Zs;W0]-[C;Za]>>[C]-[Br].[N]
+q, p1, p2 = prepare()
+q.add_atom('N', heteroatoms=0, hybridization=1, neighbors=(2, 3))
+q.add_atom('C', hybridization=4)
+q.add_bond(1, 2, 1)
+
+p1.add_atom('C', _map=2)
+p1.add_atom('Br')
+p1.add_bond(2, 3, 1)
+
+p2.add_atom('N')
+
+
+# imidazole imine atom's alkylation
+# [C;r5](:[N;r5]-[C;Zs;W1]):[N;D2;r5]>>[C]-[Br].[N]:[C]:[N]
+q, p1, p2 = prepare()
+q.add_atom('N', rings_sizes=5)
+q.add_atom('C', rings_sizes=5)
+q.add_atom('N', rings_sizes=5, neighbors=2)
+q.add_atom('C', hybridization=1, heteroatoms=1)
+q.add_bond(1, 2, 4)
+q.add_bond(2, 3, 4)
+q.add_bond(1, 4, 1)
+
+p1.add_atom('N')
+p1.add_atom('C')
+p1.add_atom('N')
+p1.add_bond(1, 2, 4)
+p1.add_bond(2, 3, 4)
+
+p2.add_atom('C', _map=4)
+p2.add_atom('Br')
+p2.add_bond(4, 5, 1)
+
+
+__all__ = ['rules']

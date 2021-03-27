@@ -130,7 +130,7 @@ class RetroTree(RetroTreeABC):
         for node in reversed(nodes):
             node = self._nodes[node]
             tmp.append(node.molecules)
-        tmp = [ReactionContainer(after[len(before) - 1:], before[:1]) for before, after in zip(tmp, tmp[1:])]
+        tmp = [ReactionContainer(after[len(before) - 1:], [before[0].copy()]) for before, after in zip(tmp, tmp[1:])]
         for r in tmp:
             r.fix_positions()
         return tuple(reversed(tmp))
@@ -190,7 +190,7 @@ class RetroTree(RetroTreeABC):
             lst = lst[:1]
 
         if only_visited:
-            nodes = {k: v for k, v in self._nodes.items() if self._succ[k]}
+            nodes = {k: v for k, v in self._nodes.items() if self._visits[k]}
         else:
             nodes = {k: v for k, v in self._nodes.items()}
 

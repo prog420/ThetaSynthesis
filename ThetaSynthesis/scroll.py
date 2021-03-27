@@ -70,7 +70,7 @@ class Scroll(ScrollABC):
                 continue
             history = self._history.copy()
             history.update(new)
-            return prob, type(self)((*self._synthons[1:], *new), history, len(new))
+            return prob, type(self)((*self._synthons[1:], *sorted(new, key=bool)), history, len(new))
         raise StopIteration('End of possible reactions has reached')
 
     def __hash__(self):
