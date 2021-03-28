@@ -261,4 +261,20 @@ p.add_atom('N', _map=4)
 p.add_bond(1, 4, 3)
 
 
+# sulfamidation
+# [c](=[O])(=[O])-[S]-[N]>>[c]
+q, p = prepare()
+q.add_atom('C', hybridization=4)
+q.add_atom('S')
+q.add_atom('O')
+q.add_atom('O')
+q.add_atom('N', neighbors=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 2)
+q.add_bond(2, 4, 2)
+q.add_bond(2, 5, 1)
+
+p.add_atom('C')
+
+
 __all__ = ['rules']
