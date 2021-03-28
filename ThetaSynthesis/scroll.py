@@ -31,15 +31,15 @@ class Scroll(ScrollABC):
         self._history = history
         self._closures = set()  # expanded synthons available in history
 
-        current = synthons[0]
-        if current:  # already building block
-            self._expand = ()
-        else:
-            self._expand = iter(current)
-
     def __call__(self, **kwargs):
         for synth in self._synthons[-self._others:]:
             synth(**kwargs)  # default scroll just transfer params into all new added synthons.
+        self._synthons = tuple(sorted(self._synthons, key=bool))
+        curr = self._synthons[0]
+        if curr:
+            self._expand = ()
+        else:
+            self._expand = iter(curr)
 
     def __bool__(self):
         """
