@@ -17,10 +17,12 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+from collections import ChainMap
 from CGRtools import MoleculeContainer, ReactionContainer
+from itertools import count
 from math import sqrt
 from tqdm import tqdm
-from typing import Type, Tuple, Optional
+from typing import Dict, Set, Type, Tuple, Optional
 from .abc import RetroTreeABC
 from .scroll import Scroll
 from .synthon.abc import SynthonABC
@@ -167,6 +169,17 @@ class RetroTree(RetroTreeABC):
                         self._update_actions(node)
                         break
         raise StopIteration('Max tree size exceeded or all possible paths found' + self.report())
+
+    def path_graph(self, node: int) -> Tuple[Dict[int, 'MoleculeContainer'], Dict[int, Set[int]]]:
+        mols, successors = {}, {}
+        reactions = self._prepare_path(node)
+        counter = count()
+        for r in reactions:
+            reactants = {idx: mol for idx, mol in zip(counter, r.reactants)}
+            products = {idx: mol for idx, mol in zip(counter, r.products)}
+            successors.update({r: set(products) for r in reactants})
+            mols.update(ChainMap(reactants, products))
+        return mols, successors
 
     def find_target(self, molecule: 'MoleculeContainer'):
         return [idx for idx, node in self._nodes.items() if molecule == node._synthons[0]._molecule]
