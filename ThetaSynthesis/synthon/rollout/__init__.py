@@ -23,6 +23,8 @@ from io import TextIOWrapper
 from pkg_resources import resource_stream
 from typing import Tuple, TYPE_CHECKING, Set, FrozenSet
 from .rules import rules
+from typing import TYPE_CHECKING, Set, FrozenSet
+from .rules import rules
 from ..abc import SynthonABC
 
 if TYPE_CHECKING:
@@ -92,7 +94,6 @@ class RolloutSynthon(SynthonABC):
                 if products in seen:
                     continue
                 seen.add(products)
-
                 yield prob, tuple(type(self)(mol) for mol in products)
 
     def __bool__(self):

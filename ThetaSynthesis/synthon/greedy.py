@@ -17,8 +17,8 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from .abc import SynthonABC
 from CGRtools import smiles, Reactor, ReactionContainer
+from .abc import SynthonABC
 
 
 class GreedySynthon(SynthonABC):
