@@ -82,9 +82,15 @@ class RetroTreeABC(ABC):
         self._free_node: int = 2
 
     @abstractmethod
-    def __next__(self) -> Tuple[ReactionContainer, ...]:
+    def __next__(self) -> int:
         """
-        Yield a path from building blocks to target molecule.
+        Yield number of tree's node from building blocks.
+        """
+
+    @abstractmethod
+    def synthesis_path(self, node: int) -> Tuple[ReactionContainer, ...]:
+        """
+        Return a synthesis path from a picked node's molecule to target molecule.
         """
 
     def __iter__(self):

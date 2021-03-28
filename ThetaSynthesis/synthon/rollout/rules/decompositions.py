@@ -81,7 +81,7 @@ p2.add_atom('C', _map=4)
 q, p1, p2 = prepare()
 q.add_atom('C', hybridization=4)
 q.add_atom('O')
-q.add_atom('C', hybridization=1, heteroatoms=0)
+q.add_atom('C', hybridization=1, heteroatoms=1)
 q.add_bond(1, 2, 1)
 q.add_bond(2, 3, 1)
 
@@ -288,7 +288,7 @@ p1.add_atom('N')
 p1.add_bond(1, 2, 1)
 
 p2.add_atom('C', _map=3)
-p2.add_atom('Br')
+p2.add_atom('Cl')
 p2.add_bond(3, 4, 1)
 
 

@@ -17,35 +17,42 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
+from itertools import filterfalse, tee
 from typing import Tuple, Set
 from .abc import ScrollABC
 from .synthon.abc import SynthonABC
 
 
 class Scroll(ScrollABC):
-    __slots__ = ('_synthons', '_history', '_expand', '_closures', '_others')
+    __slots__ = ('_synthons', '_history', '_expand', '_closures', '_others', '_building_blocks')
 
-    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], others: int, /):
-        self._synthons = synthons
+    def __init__(self, synthons: Tuple[SynthonABC, ...], blocks: Set[SynthonABC],
+                 history: Set[SynthonABC], others: Tuple['SynthonABC', ...], /):
+        new_synths, new_blocks = self.partition(others)
+
+        self._synthons = (*synthons, *new_synths)
         self._others = others
+
+        self._building_blocks = blocks
+        self._building_blocks |= set(new_blocks)
+
         self._history = history
         self._closures = set()  # expanded synthons available in history
 
-    def __call__(self, **kwargs):
-        for synth in self._synthons[-self._others:]:
-            synth(**kwargs)  # default scroll just transfer params into all new added synthons.
-        self._synthons = tuple(sorted(self._synthons, key=bool))
-        curr = self._synthons[0]
-        if curr:
+        if self:
             self._expand = ()
         else:
-            self._expand = iter(curr)
+            self._expand = iter(self._synthons[0])
+
+    def __call__(self, **kwargs):
+        for synth in self._others:
+            synth(**kwargs)  # default scroll just transfer params into all new added synthons.
 
     def __bool__(self):
         """
         Is terminal state. All synthons is building blocks
         """
-        return all(self._synthons)
+        return not self._synthons
 
     def __len__(self):
         return len(self._synthons)
@@ -60,6 +67,14 @@ class Scroll(ScrollABC):
     def molecules(self):
         return tuple(x.molecule for x in self._synthons)
 
+    @property
+    def current_synthon(self):
+        return self._synthons[0]
+
+    @property
+    def new_synthons(self):
+        return self._others
+
     def __next__(self):
         """
         Expand Tree.
@@ -68,9 +83,10 @@ class Scroll(ScrollABC):
             if not self._history.isdisjoint(new):
                 self._closures.add(new)
                 continue
+            blocks = self._building_blocks.copy()
             history = self._history.copy()
             history.update(new)
-            return prob, type(self)((*self._synthons[1:], *sorted(new, key=bool)), history, len(new))
+            return prob, type(self)((*self._synthons[1:], ), blocks, history, new)
         raise StopIteration('End of possible reactions has reached')
 
     def __hash__(self):
@@ -78,6 +94,14 @@ class Scroll(ScrollABC):
 
     def __repr__(self):
         return '\n'.join([repr(x) for x in self._synthons])
+
+    @staticmethod
+    def partition(iterable, key=bool):
+        """
+        Use a predicate to partition entries into false entries and true entries
+        """
+        t1, t2 = tee(iterable)
+        return filterfalse(key, t1), filter(key, t2)
 
 
 __all__ = ['Scroll']
