@@ -8,13 +8,13 @@ API Example::
 
     from CGRtools import smiles, RDFWrite
     from ThetaSynthesis import RetroTree
-    from ThetaSynthesis.synthon import DummySynthon
+    from ThetaSynthesis.synthon import RolloutSynthon
 
 
     target = smiles('CC(=O)NC1=CC=C(O)C=C1')
     target.canonicalize()
 
-    tree = RetroTree(target, synthon_class=DummySynthon)
+    tree = RetroTree(target, synthon_class=RolloutSynthon)
 
     with RDFWrite('acetaminophen.rdf') as f:
         for path in tree:

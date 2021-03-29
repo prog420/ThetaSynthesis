@@ -51,7 +51,7 @@ class RetroTree(RetroTreeABC):
         self._tqdm = tqdm(total=iterations)
 
         synthon = synthon_class(target)
-        scroll = Scroll((), {synthon}, (synthon, ))
+        scroll = Scroll((), (synthon,), {synthon})
         scroll(finish=self._depth)
         super().__init__(scroll)
 
@@ -66,11 +66,9 @@ class RetroTree(RetroTreeABC):
             nodes.append(node)
             node = self._pred[node]
 
-        tmp = []
-        for node in reversed(nodes):
-            node = self._nodes[node]
-            tmp.append(tuple(x.molecule for x in node.new_synthons))
-        tmp = [ReactionContainer(after, [before[0].copy()]) for before, after in zip(tmp, tmp[1:])]
+        tmp = [self._nodes[node] for node in reversed(nodes)]
+        tmp = [ReactionContainer([x.molecule for x in after.new_synthons], [before.current_synthon.molecule])
+               for before, after in zip(tmp, tmp[1:])]
         for r in tmp:
             r.clean2d()
         return tuple(reversed(tmp))
@@ -87,7 +85,7 @@ class RetroTree(RetroTreeABC):
         return mols, successors
 
     def find_target(self, molecule: 'MoleculeContainer'):
-        return [idx for idx, node in self._nodes.items() if molecule == node._synthons[0]._molecule]
+        return [idx for idx, node in self._nodes.items() if node and node.current_synthon._molecule == molecule]
 
     def report(self) -> str:
         return f'Tree for: {self._nodes[1]}\n' \
@@ -227,6 +225,9 @@ class RetroTree(RetroTreeABC):
                         self._update_actions(node)
                         break
         raise StopIteration('Max tree size exceeded or all possible paths found' + self.report())
+
+    def __repr__(self):
+        return self.report()
 
 
 __all__ = ['RetroTree']

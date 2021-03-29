@@ -18,71 +18,9 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from abc import ABC, abstractmethod
-from CGRtools import MoleculeContainer, ReactionContainer
-from typing import Dict, Set, Tuple, TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from ..synthon.abc import SynthonABC
-
-
-class ScrollABC(ABC):
-    """
-    Node of MCTS Tree
-    """
-    __slots__ = ()
-
-    def __iter__(self):
-        return self
-
-    @abstractmethod
-    def __next__(self) -> Tuple[float, 'ScrollABC']:
-        """
-        Yield pairs of reaction value and Scroll.
-        """
-
-    @abstractmethod
-    def __bool__(self):
-        ...
-
-    @abstractmethod
-    def __float__(self):
-        ...
-
-    @abstractmethod
-    def __hash__(self):
-        ...
-
-    def __eq__(self, other: "ScrollABC"):
-        return hash(self) == hash(other)
-
-    @property
-    @abstractmethod
-    def molecules(self) -> Tuple[MoleculeContainer, ...]:
-        """
-        Molecules stored in scroll.
-        """
-
-    @property
-    @abstractmethod
-    def current_synthon(self) -> 'SynthonABC':
-        """
-        Return a synthon from the top of the queue of node's synthons.
-        """
-
-    @property
-    @abstractmethod
-    def new_synthons(self) -> Tuple['SynthonABC', ...]:
-        """
-        Return a collection of new just added synthons.
-        """
-
-    @abstractmethod
-    def __call__(self, **kwargs):
-        """
-        Apply additional params from tree to scroll.
-
-        Unified way for tree customizations.
-        """
+from CGRtools import ReactionContainer
+from typing import Dict, Set, Tuple
+from .scroll import ScrollABC
 
 
 class RetroTreeABC(ABC):
@@ -123,4 +61,4 @@ class RetroTreeABC(ABC):
         return f'{type(self).__name__}({self._nodes[1]})'
 
 
-__all__ = ['ScrollABC', 'RetroTreeABC']
+__all__ = ['RetroTreeABC']
