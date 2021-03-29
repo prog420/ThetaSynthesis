@@ -17,16 +17,16 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from itertools import filterfalse, tee
 from typing import Tuple, Set
-from .abc import ScrollABC
+from .abc import ScrollABC, IsTerminal
 from .synthon.abc import SynthonABC
 
 
 class Scroll(ScrollABC):
     __slots__ = ('_synthons', '_history', '_expand', '_closures', '_new_synthons')
 
-    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], new_synthons: Tuple['SynthonABC', ...], /):
+    def __init__(self, synthons: Tuple[SynthonABC, ...], new_synthons: Tuple[SynthonABC, ...],
+                 history: Set[SynthonABC], /):
         self._synthons = (*synthons, *(x for x in new_synthons if not x))
         self._new_synthons = new_synthons
         self._history = history
@@ -40,6 +40,17 @@ class Scroll(ScrollABC):
     def __call__(self, **kwargs):
         for synth in self._new_synthons:
             synth(**kwargs)  # default scroll just transfer params into all new added synthons.
+
+    @property
+    def current_synthon(self):
+        try:
+            return self._synthons[0]
+        except IndexError:
+            raise IsTerminal
+
+    @property
+    def new_synthons(self):
+        return self._new_synthons
 
     def __bool__(self):
         """
@@ -56,18 +67,6 @@ class Scroll(ScrollABC):
         """
         return min((float(x) for x in self._synthons), default=1.)
 
-    @property
-    def molecules(self):
-        return tuple(x.molecule for x in self._synthons)
-
-    @property
-    def current_synthon(self):
-        return self._synthons[0]
-
-    @property
-    def new_synthons(self):
-        return self._new_synthons
-
     def __next__(self):
         """
         Expand Tree.
@@ -78,14 +77,16 @@ class Scroll(ScrollABC):
                 continue
             history = self._history.copy()
             history.update(new)
-            return prob, type(self)((*self._synthons[1:], ), history, new)
+            return prob, type(self)(self._synthons[1:], new, history)
         raise StopIteration('End of possible reactions has reached')
 
     def __hash__(self):
         return hash(tuple(hash(synth) for synth in self._synthons))
 
     def __repr__(self):
-        return '\n'.join([repr(x) for x in self._synthons])
+        s = '\n'.join([repr(x) for x in self._synthons])
+        n = '\n'.join([repr(x) for x in self._new_synthons])
+        return f'Queue:\n{s}\nNew:\n{n}'
 
 
 __all__ = ['Scroll']
