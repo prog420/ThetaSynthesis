@@ -277,4 +277,86 @@ q.add_bond(2, 5, 1)
 p.add_atom('C')
 
 
+# Ring expansion rearrangement
+#
+q, p = prepare()
+q.add_atom('C')
+q.add_atom('N')
+q.add_atom('C', rings_sizes=6)
+q.add_atom('C')
+q.add_atom('O')
+q.add_atom('C')
+q.add_atom('C')
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+q.add_bond(4, 5, 2)
+q.add_bond(3, 6, 1)
+q.add_bond(4, 7, 1)
+
+p.add_atom('C')
+p.add_atom('N')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('O')
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(1, 2, 1)
+p.add_bond(2, 3, 2)
+p.add_bond(3, 4, 1)
+p.add_bond(4, 5, 1)
+p.add_bond(4, 6, 1)
+p.add_bond(4, 7, 1)
+
+
+# hydrolysis of bromide alkyl
+q, p = prepare()
+q.add_atom('C', hybridization=1)
+q.add_atom('O', neighbors=1)
+q.add_bond(1, 2, 1)
+
+p.add_atom('C')
+p.add_atom('Br')
+p.add_bond(1, 2, 1)
+
+
+# Condensation of ketones/aldehydes and amines into imines
+#
+q, p = prepare()
+q.add_atom('N', neighbors=(1, 2))
+q.add_atom('C', neighbors=(2, 3), heteroatoms=1)
+q.add_bond(1, 2, 2)
+
+p.add_atom('C', _map=2)
+p.add_atom('O')
+p.add_bond(2, 3, 2)
+
+
+# Halogenation of alkanes
+#
+q, p = prepare()
+q.add_atom('C', hybridization=1)
+q.add_atom(ListElement(['F', 'Cl', 'Br']))
+q.add_bond(1, 2, 1)
+
+p.add_atom('C')
+
+
+# heterocyclization
+#
+q, p = prepare()
+q.add_atom('N', heteroatoms=0, hybridization=1, neighbors=(2, 3))
+q.add_atom('C', heteroatoms=2)
+q.add_atom('N', heteroatoms=0, neighbors=2)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 2)
+
+p.add_atom('N')
+p.add_atom('C')
+p.add_atom('N')
+p.add_atom('O')
+p.add_bond(1, 2, 1)
+p.add_bond(2, 4, 2)
+
+
 __all__ = ['rules']
