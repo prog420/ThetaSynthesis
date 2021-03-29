@@ -17,8 +17,10 @@ API Example::
     tree = RetroTree(target, synthon_class=RolloutSynthon)
 
     with RDFWrite('acetaminophen.rdf') as f:
-        for path in tree:
+        for n in tree:
+            path = tree.synthesis_path(n)
             for r in path:
+                r.clean2d()
                 f.write(r)
 
     print(tree.report())
