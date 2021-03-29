@@ -51,7 +51,7 @@ class RetroTree(RetroTreeABC):
         self._tqdm = tqdm(total=iterations)
 
         synthon = synthon_class(target)
-        scroll = Scroll((), set(), {synthon}, (synthon, ))
+        scroll = Scroll((), {synthon}, (synthon, ))
         scroll(finish=self._depth)
         super().__init__(scroll)
 

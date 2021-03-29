@@ -102,7 +102,7 @@ q.add_atom('C', hybridization=4)
 q.add_bond(1, 2, 1)
 
 p1.add_atom('C', _map=2)
-p1.add_atom('Cl')
+p1.add_atom('Br')
 p1.add_bond(2, 3, 1)
 
 p2.add_atom('N')

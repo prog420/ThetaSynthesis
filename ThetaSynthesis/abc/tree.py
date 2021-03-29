@@ -19,7 +19,10 @@
 #
 from abc import ABC, abstractmethod
 from CGRtools import MoleculeContainer, ReactionContainer
-from typing import Dict, Set, Tuple
+from typing import Dict, Set, Tuple, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from ..synthon.abc import SynthonABC
 
 
 class ScrollABC(ABC):
@@ -57,6 +60,20 @@ class ScrollABC(ABC):
     def molecules(self) -> Tuple[MoleculeContainer, ...]:
         """
         Molecules stored in scroll.
+        """
+
+    @property
+    @abstractmethod
+    def current_synthon(self) -> 'SynthonABC':
+        """
+        Return a synthon from the top of the queue of node's synthons.
+        """
+
+    @property
+    @abstractmethod
+    def new_synthons(self) -> Tuple['SynthonABC', ...]:
+        """
+        Return a collection of new just added synthons.
         """
 
     @abstractmethod

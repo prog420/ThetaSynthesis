@@ -24,28 +24,21 @@ from .synthon.abc import SynthonABC
 
 
 class Scroll(ScrollABC):
-    __slots__ = ('_synthons', '_history', '_expand', '_closures', '_others', '_building_blocks')
+    __slots__ = ('_synthons', '_history', '_expand', '_closures', '_new_synthons')
 
-    def __init__(self, synthons: Tuple[SynthonABC, ...], blocks: Set[SynthonABC],
-                 history: Set[SynthonABC], others: Tuple['SynthonABC', ...], /):
-        new_synths, new_blocks = self.partition(others)
-
-        self._synthons = (*synthons, *new_synths)
-        self._others = others
-
-        self._building_blocks = blocks
-        self._building_blocks |= set(new_blocks)
-
+    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], new_synthons: Tuple['SynthonABC', ...], /):
+        self._synthons = (*synthons, *(x for x in new_synthons if not x))
+        self._new_synthons = new_synthons
         self._history = history
         self._closures = set()  # expanded synthons available in history
 
-        if self:
+        if not self._synthons:
             self._expand = ()
         else:
             self._expand = iter(self._synthons[0])
 
     def __call__(self, **kwargs):
-        for synth in self._others:
+        for synth in self._new_synthons:
             synth(**kwargs)  # default scroll just transfer params into all new added synthons.
 
     def __bool__(self):
@@ -61,7 +54,7 @@ class Scroll(ScrollABC):
         """
         Worse value from all synthons in the scroll
         """
-        return min(float(x) for x in self._synthons)
+        return min((float(x) for x in self._synthons), default=1.)
 
     @property
     def molecules(self):
@@ -73,7 +66,7 @@ class Scroll(ScrollABC):
 
     @property
     def new_synthons(self):
-        return self._others
+        return self._new_synthons
 
     def __next__(self):
         """
@@ -83,10 +76,9 @@ class Scroll(ScrollABC):
             if not self._history.isdisjoint(new):
                 self._closures.add(new)
                 continue
-            blocks = self._building_blocks.copy()
             history = self._history.copy()
             history.update(new)
-            return prob, type(self)((*self._synthons[1:], ), blocks, history, new)
+            return prob, type(self)((*self._synthons[1:], ), history, new)
         raise StopIteration('End of possible reactions has reached')
 
     def __hash__(self):
@@ -94,14 +86,6 @@ class Scroll(ScrollABC):
 
     def __repr__(self):
         return '\n'.join([repr(x) for x in self._synthons])
-
-    @staticmethod
-    def partition(iterable, key=bool):
-        """
-        Use a predicate to partition entries into false entries and true entries
-        """
-        t1, t2 = tee(iterable)
-        return filterfalse(key, t1), filter(key, t2)
 
 
 __all__ = ['Scroll']
