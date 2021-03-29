@@ -17,12 +17,10 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from collections import ChainMap
 from CGRtools import MoleculeContainer, ReactionContainer
-from itertools import count
 from math import sqrt
 from tqdm import tqdm
-from typing import Dict, Set, Type, Tuple, Optional
+from typing import Type, Optional
 from .abc import RetroTreeABC
 from .scroll import Scroll
 from .synthon.abc import SynthonABC
@@ -65,24 +63,103 @@ class RetroTree(RetroTreeABC):
         while node:
             nodes.append(node)
             node = self._pred[node]
+        nodes = [self._nodes[node] for node in reversed(nodes)]
 
-        tmp = [self._nodes[node] for node in reversed(nodes)]
         tmp = [ReactionContainer([x.molecule for x in after.new_synthons], [before.current_synthon.molecule])
-               for before, after in zip(tmp, tmp[1:])]
+               for before, after in zip(nodes, nodes[1:])]
         for r in tmp:
             r.clean2d()
         return tuple(reversed(tmp))
 
-    def path_graph(self, node: int) -> Tuple[Dict[int, 'MoleculeContainer'], Dict[int, Set[int]]]:
-        mols, successors = {}, {}
-        reactions = self.synthesis_path(node)
-        counter = count()
-        for r in reactions:
-            reactants = {idx: mol for idx, mol in zip(counter, r.reactants)}
-            products = {idx: mol for idx, mol in zip(counter, r.products)}
-            successors.update({r: set(products) for r in reactants})
-            mols.update(ChainMap(reactants, products))
-        return mols, successors
+    def path_graph(self, node: int) -> str:
+        """
+        Visualize reaction path.
+
+        :param node: building block node
+        :return: SVG string
+        """
+        nodes = []
+        while node:
+            nodes.append(node)
+            node = self._pred[node]
+        nodes = [self._nodes[node] for node in reversed(nodes)]
+        succ = {}
+        pred = {}
+        for before, after in zip(nodes, nodes[1:]):
+            before = before.current_synthon.molecule
+            succ[before] = after = [x.molecule for x in after.new_synthons]
+            for x in after:
+                pred[x] = before
+
+        start = nodes[0].current_synthon.molecule
+        queue = [(start, 0)]
+        columns = []
+        while queue:
+            current, d = queue.pop(0)
+            if len(columns) == d:
+                layer = []
+                columns.append(layer)
+            else:
+                layer = columns[d]
+            layer.append(current)
+            d += 1
+            try:
+                queue.extend(((x, d) for x in succ[current]))
+            except KeyError:  # leafs
+                pass
+        # now we have columns for visualizing
+        # lets start recalculate XY
+        x_shift = 0.
+        c_max_x = 0.
+        c_max_y = 0.
+        render = []
+        arrow_points = {}
+        for ms in columns:
+            heights = []
+            for m in ms:
+                m.clean2d()
+                # X-shift for molecule
+                min_x = min(x for x, y in m._plane.values()) - x_shift
+                min_y = min(y for x, y in m._plane.values())
+                m._plane = {n: (x - min_x, y - min_y) for n, (x, y) in m._plane.items()}
+                max_x = max(x for x, y in m._plane.values())
+                if max_x > c_max_x:
+                    c_max_x = max_x
+                arrow_points[m] = [x_shift, max_x]
+                heights.append(max(y for x, y in m._plane.values()))
+            x_shift = c_max_x + 5.  # between columns gap
+            # calculate Y-shift
+            y_shift = (sum(heights) + 3. * (len(heights) - 1))
+            if y_shift > c_max_y:
+                c_max_y = y_shift
+            y_shift /= 2.
+            for m, h in zip(ms, heights):
+                m._plane = {n: (x, y - y_shift) for n, (x, y) in m._plane.items()}
+                arrow_points[m].append(y_shift - h / 2.)
+                y_shift -= h + 3.
+                render.append(m.depict(embedding=True)[:3])
+
+        config = MoleculeContainer._render_config
+        font_size = config['font_size']
+        font125 = 1.25 * font_size
+        width = c_max_x + 3.0 * font_size
+        height = c_max_y + 2.5 * font_size
+        box_y = height / 2.
+        svg = [f'<svg width="{width:.2f}cm" height="{height:.2f}cm" '
+               f'viewBox="{-font125:.2f} {-box_y:.2f} {width:.2f} '
+               f'{height:.2f}" xmlns="http://www.w3.org/2000/svg" version="1.1">',
+               '  <defs>\n    <marker id="arrow" markerWidth="10" markerHeight="10" '
+               'refX="0" refY="3" orient="auto">\n      <path d="M0,0 L0,6 L9,3"/>\n    </marker>\n  </defs>']
+
+        for s, p in pred.items():
+            s_min_x, s_max, s_y = arrow_points[s]
+            p_min_x, p_max, p_y = arrow_points[p]
+            svg.append(f'  <line x1="{p_max + 1.:.2f}" y1="{p_y:.2f}" x2="{s_min_x - 1.:.2f}" y2="{s_y:.2f}" '
+                       'fill="none" stroke="black" stroke-width=".04" marker-end="url(#arrow)"/>')
+        for atoms, bonds, masks in render:
+            svg.extend(MoleculeContainer._graph_svg(atoms, bonds, masks, -font125, -box_y, width, height))
+        svg.append('</svg>')
+        return '\n'.join(svg)
 
     def find_target(self, molecule: 'MoleculeContainer'):
         return [idx for idx, node in self._nodes.items() if node and node.current_synthon._molecule == molecule]
