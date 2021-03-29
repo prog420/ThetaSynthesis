@@ -70,7 +70,7 @@ class RetroTree(RetroTreeABC):
         for node in reversed(nodes):
             node = self._nodes[node]
             tmp.append(tuple(x.molecule for x in node.new_synthons))
-        tmp = [ReactionContainer(after[len(before) - 1:], [before[0].copy()]) for before, after in zip(tmp, tmp[1:])]
+        tmp = [ReactionContainer(after, [before[0].copy()]) for before, after in zip(tmp, tmp[1:])]
         for r in tmp:
             r.clean2d()
         return tuple(reversed(tmp))
