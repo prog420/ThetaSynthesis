@@ -86,7 +86,7 @@ class Scroll(ScrollABC):
     def __repr__(self):
         s = '\n'.join([repr(x) for x in self._synthons])
         n = '\n'.join([repr(x) for x in self._new_synthons])
-        return f'Queue:\n{s}\nNew:\n{n}'
+        return f'queue:\n{s}\nnew:\n{n}'
 
 
 __all__ = ['Scroll']
