@@ -18,54 +18,9 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from abc import ABC, abstractmethod
-from CGRtools import MoleculeContainer, ReactionContainer
+from CGRtools import ReactionContainer
 from typing import Dict, Set, Tuple
-
-
-class ScrollABC(ABC):
-    """
-    Node of MCTS Tree
-    """
-    __slots__ = ()
-
-    def __iter__(self):
-        return self
-
-    @abstractmethod
-    def __next__(self) -> Tuple[float, 'ScrollABC']:
-        """
-        Yield pairs of reaction value and Scroll.
-        """
-
-    @abstractmethod
-    def __bool__(self):
-        ...
-
-    @abstractmethod
-    def __float__(self):
-        ...
-
-    @abstractmethod
-    def __hash__(self):
-        ...
-
-    def __eq__(self, other: "ScrollABC"):
-        return hash(self) == hash(other)
-
-    @property
-    @abstractmethod
-    def molecules(self) -> Tuple[MoleculeContainer, ...]:
-        """
-        Molecules stored in scroll.
-        """
-
-    @abstractmethod
-    def __call__(self, **kwargs):
-        """
-        Apply additional params from tree to scroll.
-
-        Unified way for tree customizations.
-        """
+from .scroll import ScrollABC
 
 
 class RetroTreeABC(ABC):
@@ -82,9 +37,15 @@ class RetroTreeABC(ABC):
         self._free_node: int = 2
 
     @abstractmethod
-    def __next__(self) -> Tuple[ReactionContainer, ...]:
+    def __next__(self) -> int:
         """
-        Yield a path from building blocks to target molecule.
+        Yield number of tree's node from building blocks.
+        """
+
+    @abstractmethod
+    def synthesis_path(self, node: int) -> Tuple[ReactionContainer, ...]:
+        """
+        Return a synthesis path from a picked node's molecule to target molecule.
         """
 
     def __iter__(self):
@@ -100,4 +61,4 @@ class RetroTreeABC(ABC):
         return f'{type(self).__name__}({self._nodes[1]})'
 
 
-__all__ = ['ScrollABC', 'RetroTreeABC']
+__all__ = ['RetroTreeABC']

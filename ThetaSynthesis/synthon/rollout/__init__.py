@@ -17,16 +17,12 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from CGRtools import Reactor
+from CGRtools import MoleculeContainer, Reactor, smiles
 from collections import deque
 from io import TextIOWrapper
 from pkg_resources import resource_stream
-from typing import TYPE_CHECKING, Set, FrozenSet
-from .rules import rules
+from typing import Set, FrozenSet
 from ..abc import SynthonABC
-
-if TYPE_CHECKING:
-    from CGRtools import MoleculeContainer
 
 
 class RolloutSynthon(SynthonABC):
@@ -36,8 +32,11 @@ class RolloutSynthon(SynthonABC):
 
     def __new__(cls, molecule, *args, **kwargs):
         if cls.__bb__ is None:
-            cls.__bb__ = frozenset(x.strip() for x in
-                                   TextIOWrapper(resource_stream(__name__, 'data/building_blocks.smiles')))
+            from .rules import rules
+            bb = [smiles(x.strip()) for x in TextIOWrapper(resource_stream(__name__, 'data/building_blocks.smiles'))]
+            for b in bb:  # recalculate canonic forms. prevent errors when CGRtools rules set changes.
+                b.canonicalize()
+            cls.__bb__ = frozenset(str(b) for b in bb)
             cls.__reactors__ = tuple((1., Reactor(x, delete_atoms=True)) for x in rules)
         return super().__new__(cls, *args, **kwargs)
 

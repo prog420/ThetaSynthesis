@@ -18,34 +18,45 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from typing import Tuple, Set
-from .abc import ScrollABC
+from .abc import ScrollABC, IsTerminal
 from .synthon.abc import SynthonABC
 
 
 class Scroll(ScrollABC):
-    __slots__ = ('_synthons', '_history', '_expand', '_closures', '_others')
+    __slots__ = ('_synthons', '_history', '_expand', '_closures', '_new_synthons')
 
-    def __init__(self, synthons: Tuple[SynthonABC, ...], history: Set[SynthonABC], others: int, /):
-        self._synthons = synthons
-        self._others = others
+    def __init__(self, synthons: Tuple[SynthonABC, ...], new_synthons: Tuple[SynthonABC, ...],
+                 history: Set[SynthonABC], /):
+        self._synthons = (*synthons, *(x for x in new_synthons if not x))
+        self._new_synthons = new_synthons
         self._history = history
         self._closures = set()  # expanded synthons available in history
 
-        current = synthons[0]
-        if current:  # already building block
+        if not self._synthons:
             self._expand = ()
         else:
-            self._expand = iter(current)
+            self._expand = iter(self._synthons[0])
 
     def __call__(self, **kwargs):
-        for synth in self._synthons[-self._others:]:
+        for synth in self._new_synthons:
             synth(**kwargs)  # default scroll just transfer params into all new added synthons.
+
+    @property
+    def current_synthon(self):
+        try:
+            return self._synthons[0]
+        except IndexError:
+            raise IsTerminal
+
+    @property
+    def new_synthons(self):
+        return self._new_synthons
 
     def __bool__(self):
         """
         Is terminal state. All synthons is building blocks
         """
-        return all(self._synthons)
+        return not self._synthons
 
     def __len__(self):
         return len(self._synthons)
@@ -54,11 +65,7 @@ class Scroll(ScrollABC):
         """
         Worse value from all synthons in the scroll
         """
-        return min(float(x) for x in self._synthons)
-
-    @property
-    def molecules(self):
-        return tuple(x.molecule for x in self._synthons)
+        return min((float(x) for x in self._synthons), default=1.)
 
     def __next__(self):
         """
@@ -70,14 +77,16 @@ class Scroll(ScrollABC):
                 continue
             history = self._history.copy()
             history.update(new)
-            return prob, type(self)((*self._synthons[1:], *sorted(new, key=bool)), history, len(new))
+            return prob, type(self)(self._synthons[1:], new, history)
         raise StopIteration('End of possible reactions has reached')
 
     def __hash__(self):
         return hash(tuple(hash(synth) for synth in self._synthons))
 
     def __repr__(self):
-        return '\n'.join([repr(x) for x in self._synthons])
+        s = '\n'.join([repr(x) for x in self._synthons])
+        n = '\n'.join([repr(x) for x in self._new_synthons])
+        return f'queue:\n{s}\nnew:\n{n}'
 
 
 __all__ = ['Scroll']

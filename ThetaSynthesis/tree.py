@@ -20,7 +20,7 @@
 from CGRtools import MoleculeContainer, ReactionContainer
 from math import sqrt
 from tqdm import tqdm
-from typing import Type, Tuple, Optional
+from typing import Type, Optional
 from .abc import RetroTreeABC
 from .scroll import Scroll
 from .synthon.abc import SynthonABC
@@ -30,7 +30,7 @@ class RetroTree(RetroTreeABC):
     __slots__ = ('_depth', '_size', '_c_puct', '_expanded', '_iterations', '_limit', '_found', '_tqdm', '_node_depth')
 
     def __init__(self, target: MoleculeContainer, /, synthon_class: Type[SynthonABC],
-                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e6):
+                 c_puct: float = 4., depth: int = 10, size: int = 1e4, iterations: int = 1e5):
         """
         :param target: target molecule
         :param c_puct: breadth/depth criterion
@@ -49,9 +49,164 @@ class RetroTree(RetroTreeABC):
         self._tqdm = tqdm(total=iterations)
 
         synthon = synthon_class(target)
-        scroll = Scroll((synthon, ), {synthon}, 1)
+        scroll = Scroll((), (synthon,), {synthon})
         scroll(finish=self._depth)
         super().__init__(scroll)
+
+    def synthesis_path(self, node):
+        """
+        Prepare reaction path
+
+        :param node: building block node
+        """
+        nodes = []
+        while node:
+            nodes.append(node)
+            node = self._pred[node]
+        nodes = [self._nodes[node] for node in reversed(nodes)]
+
+        tmp = [ReactionContainer([x.molecule for x in after.new_synthons], [before.current_synthon.molecule])
+               for before, after in zip(nodes, nodes[1:])]
+        for r in tmp:
+            r.clean2d()
+        return tuple(reversed(tmp))
+
+    def path_graph(self, node: int) -> str:
+        """
+        Visualize reaction path.
+
+        :param node: building block node
+        :return: SVG string
+        """
+        nodes = []
+        while node:
+            nodes.append(node)
+            node = self._pred[node]
+        nodes = [self._nodes[node] for node in reversed(nodes)]
+        succ = {}
+        pred = {}
+        for before, after in zip(nodes, nodes[1:]):
+            before = before.current_synthon.molecule
+            succ[before] = after = [x.molecule for x in after.new_synthons]
+            for x in after:
+                pred[x] = before
+
+        start = nodes[0].current_synthon.molecule
+        queue = [(start, 0)]
+        columns = []
+        while queue:
+            current, d = queue.pop(0)
+            if len(columns) == d:
+                layer = []
+                columns.append(layer)
+            else:
+                layer = columns[d]
+            layer.append(current)
+            d += 1
+            try:
+                queue.extend(((x, d) for x in succ[current]))
+            except KeyError:  # leafs
+                pass
+        # now we have columns for visualizing
+        # lets start recalculate XY
+        x_shift = 0.
+        c_max_x = 0.
+        c_max_y = 0.
+        render = []
+        arrow_points = {}
+        for ms in columns:
+            heights = []
+            for m in ms:
+                m.clean2d()
+                # X-shift for molecule
+                min_x = min(x for x, y in m._plane.values()) - x_shift
+                min_y = min(y for x, y in m._plane.values())
+                m._plane = {n: (x - min_x, y - min_y) for n, (x, y) in m._plane.items()}
+                max_x = max(x for x, y in m._plane.values())
+                if max_x > c_max_x:
+                    c_max_x = max_x
+                arrow_points[m] = [x_shift, max_x]
+                heights.append(max(y for x, y in m._plane.values()))
+            x_shift = c_max_x + 5.  # between columns gap
+            # calculate Y-shift
+            y_shift = (sum(heights) + 3. * (len(heights) - 1))
+            if y_shift > c_max_y:
+                c_max_y = y_shift
+            y_shift /= 2.
+            for m, h in zip(ms, heights):
+                m._plane = {n: (x, y - y_shift) for n, (x, y) in m._plane.items()}
+                arrow_points[m].append(y_shift - h / 2.)
+                y_shift -= h + 3.
+                render.append(m.depict(embedding=True)[:3])
+
+        config = MoleculeContainer._render_config
+        font_size = config['font_size']
+        font125 = 1.25 * font_size
+        width = c_max_x + 3.0 * font_size
+        height = c_max_y + 2.5 * font_size
+        box_y = height / 2.
+        svg = [f'<svg width="{width:.2f}cm" height="{height:.2f}cm" '
+               f'viewBox="{-font125:.2f} {-box_y:.2f} {width:.2f} '
+               f'{height:.2f}" xmlns="http://www.w3.org/2000/svg" version="1.1">',
+               '  <defs>\n    <marker id="arrow" markerWidth="10" markerHeight="10" '
+               'refX="0" refY="3" orient="auto">\n      <path d="M0,0 L0,6 L9,3"/>\n    </marker>\n  </defs>']
+
+        for s, p in pred.items():
+            s_min_x, s_max, s_y = arrow_points[s]
+            p_min_x, p_max, p_y = arrow_points[p]
+            svg.append(f'  <line x1="{p_max + 1.:.2f}" y1="{p_y:.2f}" x2="{s_min_x - 1.:.2f}" y2="{s_y:.2f}" '
+                       'fill="none" stroke="black" stroke-width=".04" marker-end="url(#arrow)"/>')
+        for atoms, bonds, masks in render:
+            svg.extend(MoleculeContainer._graph_svg(atoms, bonds, masks, -font125, -box_y, width, height))
+        svg.append('</svg>')
+        return '\n'.join(svg)
+
+    def find_target(self, molecule: 'MoleculeContainer'):
+        return [idx for idx, node in self._nodes.items() if node and node.current_synthon._molecule == molecule]
+
+    def report(self) -> str:
+        return f'Tree for: {self._nodes[1]}\n' \
+               f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \
+               f'Found paths: {self._found}'
+
+    def visualize(self, draw_format: str = 'png', prog: Optional[str] = None,
+                  only_visited: bool = False, verbose: int = 2):
+        import pygraphviz as pgv
+        from warnings import warn
+
+        lst = ['id', 'visits', 'smiles in queue', 'value']
+        if verbose == 3 and not only_visited:
+            warn('Verbose = 3 option can be used only for visited nodes', UserWarning)
+            only_visited = True
+        elif verbose == 2:
+            lst = lst[:3]
+        elif verbose == 1:
+            lst = lst[:2]
+        elif verbose == 0:
+            lst = lst[:1]
+
+        if only_visited:
+            nodes = {k: v for k, v in self._nodes.items() if self._visits[k]}
+        else:
+            nodes = {k: v for k, v in self._nodes.items()}
+
+        lambdas = [lambda x: x, lambda x: self._visits[x], lambda x: repr(x), lambda x: float(self._nodes[x])]
+
+        nodes_with_attrs = {
+            k: '\n'.join(f'{x}: {z(y)}' for x, y, z in zip(lst, [k, k, v, k], lambdas))
+            for k, v
+            in nodes.items()
+        }
+        pred = self._pred
+        g = pgv.AGraph(directed=True)
+        g.node_attr['shape'] = 'box'
+        g.add_edges_from([(v, k) for k, v in pred.items() if k != 1 and k in nodes])
+
+        for k, node in zip(nodes, g.nodes()):
+            node.attr['label'] = nodes_with_attrs[k]
+
+        g.layout(prog='dot')
+        return g.draw(format=draw_format, prog=prog)
 
     def __del__(self):
         self._tqdm.close()
@@ -99,7 +254,7 @@ class RetroTree(RetroTreeABC):
 
     def _select(self, node: int) -> int:
         """
-        Select preferred successor node based on views count and synthesisability.
+        Select preferred successor node based on views count and synthesizability.
         """
         return max(self._succ[node], key=self._puct)
 
@@ -114,26 +269,6 @@ class RetroTree(RetroTreeABC):
         u = self._c_puct * prob * sqrt(sum(self._visits[x] + 1 for x in self._succ[self._pred[node]]))
 
         return (self._total_actions[node] + u) / (visit + 1)
-
-    def _prepare_path(self, node: int) -> Tuple[ReactionContainer, ...]:
-        """
-        Prepare reaction path
-
-        :param node: building block node
-        """
-        nodes = []
-        while node:
-            nodes.append(node)
-            node = self._pred[node]
-
-        tmp = []
-        for node in reversed(nodes):
-            node = self._nodes[node]
-            tmp.append(node.molecules)
-        tmp = [ReactionContainer(after[len(before) - 1:], [before[0].copy()]) for before, after in zip(tmp, tmp[1:])]
-        for r in tmp:
-            r.fix_positions()
-        return tuple(reversed(tmp))
 
     def __next__(self):
         while self._expanded < self._free_node:
@@ -156,7 +291,7 @@ class RetroTree(RetroTreeABC):
                         self._update_visits(node)  # this prevents expanding of bb node
                         # I dunno: self._update_actions(node)
                         self._found += 1
-                        return self._prepare_path(node)
+                        return node
                     elif depth < self._depth and self._free_node < self._size:  # expand if depth limit not reached
                         self._expand(node)
                         self._update_visits(node)  # mark node as visited
@@ -168,49 +303,8 @@ class RetroTree(RetroTreeABC):
                         break
         raise StopIteration('Max tree size exceeded or all possible paths found' + self.report())
 
-    def report(self):
-        return f'Tree for: {self._nodes[1]}\n' \
-               f'Size: {len(self)}\nNumber of unvisited nodes: {self._free_node - self._expanded}\n' \
-               f'Found paths: {self._found}'
-
-    def visualize(self, draw_format: str = 'png', prog: Optional[str] = None,
-                  only_visited: bool = False, verbose: int = 2):
-        import pygraphviz as pgv
-        from warnings import warn
-
-        lst = ['id', 'visits', 'smiles in queue', 'value']
-        if verbose == 3 and not only_visited:
-            warn('Verbose = 3 option can be used only for visited nodes', UserWarning)
-            only_visited = True
-        elif verbose == 2:
-            lst = lst[:3]
-        elif verbose == 1:
-            lst = lst[:2]
-        elif verbose == 0:
-            lst = lst[:1]
-
-        if only_visited:
-            nodes = {k: v for k, v in self._nodes.items() if self._visits[k]}
-        else:
-            nodes = {k: v for k, v in self._nodes.items()}
-
-        lambdas = [lambda x: x, lambda x: self._visits[x], lambda x: repr(x), lambda x: float(self._nodes[x])]
-
-        nodes_with_attrs = {
-            k: '\n'.join(f'{x}: {z(y)}' for x, y, z in zip(lst, [k, k, v, k], lambdas))
-            for k, v
-            in nodes.items()
-        }
-        pred = self._pred
-        g = pgv.AGraph(directed=True)
-        g.node_attr['shape'] = 'box'
-        g.add_edges_from([(v, k) for k, v in pred.items() if k != 1 and k in nodes])
-
-        for k, node in zip(nodes, g.nodes()):
-            node.attr['label'] = nodes_with_attrs[k]
-
-        g.layout(prog='dot')
-        return g.draw(format=draw_format, prog=prog)
+    def __repr__(self):
+        return self.report()
 
 
 __all__ = ['RetroTree']
