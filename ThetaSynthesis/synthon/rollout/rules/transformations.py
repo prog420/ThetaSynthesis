@@ -310,6 +310,7 @@ p.add_bond(4, 7, 1)
 
 
 # hydrolysis of bromide alkyl
+#
 q, p = prepare()
 q.add_atom('C', hybridization=1)
 q.add_atom('O', neighbors=1)
@@ -377,6 +378,7 @@ p.add_bond(2, 3, 1)
 
 # SPECIAL CASE
 # Reduction of nitrile into methylamine
+#
 q, p = prepare()
 q.add_atom('C', neighbors=1)
 q.add_atom('N', neighbors=2)
@@ -391,6 +393,40 @@ p.add_atom('C')
 p.add_atom('C')
 p.add_bond(2, 3, 3)
 p.add_bond(3, 4, 1)
+
+
+# methylation of amides
+#
+q, p = prepare()
+q.add_atom('O')
+q.add_atom('C')
+q.add_atom('N')
+q.add_atom('C', neighbors=1)
+q.add_bond(1, 2, 2)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+
+p.add_atom('O')
+p.add_atom('C')
+p.add_atom('N')
+p.add_bond(1, 2, 2)
+p.add_bond(2, 3, 1)
+
+
+# hydrocyanation of alkenes
+#
+q, p = prepare()
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('N')
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 3)
+
+p.add_atom('C')
+q.add_atom('C')
+q.add_bond(1, 2, 2)
 
 
 __all__ = ['rules']

@@ -331,6 +331,7 @@ p2.add_bond(4, 5, 1)
 
 
 # Alkylation of alpha-carbon atom of nitrile
+#
 q, p1, p2 = prepare()
 q.add_atom('N')
 q.add_atom('C')
@@ -349,6 +350,61 @@ p1.add_bond(2, 3, 1)
 p2.add_atom('C', _map=4)
 p2.add_atom('Cl')
 p2.add_bond(4, 5, 1)
+
+
+# Gomberg-Bachmann reaction
+#
+q, p1, p2 = prepare()
+q.add_atom('C', hybridization=4, heteroatoms=0)
+q.add_atom('C', hybridization=4, heteroatoms=0)
+q.add_bond(1, 2, 1)
+
+p1.add_atom('C')
+p1.add_atom('N', _map=3)
+p1.add_bond(1, 3, 1)
+
+p2.add_atom('C', _map=2)
+
+
+# Cyclocondensation
+#
+q, p1, p2 = prepare()
+q.add_atom('N', neighbors=2)
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('N')
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('O', neighbors=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+q.add_bond(4, 5, 2)
+q.add_bond(5, 6, 1)
+q.add_bond(6, 7, 1)
+q.add_bond(7, 8, 2)
+q.add_bond(1, 7, 1)
+
+p1.add_atom('N')
+p1.add_atom('C')
+p1.add_atom('C')
+p1.add_atom('C')
+p1.add_atom('O', _map=9)
+p1.add_bond(1, 2, 1)
+p1.add_bond(2, 3, 1)
+p1.add_bond(3, 4, 1)
+p1.add_bond(4, 9, 2)
+
+p2.add_atom('N', _map=5)
+p2.add_atom('C')
+p2.add_atom('C')
+p2.add_atom('O')
+p2.add_atom('O', _map=10)
+p2.add_bond(5, 6, 1)
+p2.add_bond(6, 7, 1)
+p2.add_bond(7, 8, 2)
+p2.add_bond(7, 10, 1)
 
 
 __all__ = ['rules']
