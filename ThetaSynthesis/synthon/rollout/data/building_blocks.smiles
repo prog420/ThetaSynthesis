@@ -1,9 +1,11 @@
 c1cc(ccc1)O
 c12ccccc1cco2
 c1cnc([nH]1)C
-C(CCl)O
+C(O)CBr
+O=C(C)Cl
+O=C(O)C
 c1cc(ccc1C(=O)Cl)O
-CCN(CC)CCCl
+CCN(CC)CCBr
 CCN(CC)CC
 C(O)(=O)c1ccccc1Cl
 Clc1cccc(Cl)c1N
@@ -18,3 +20,6 @@ C(O)(=O)c1ccc(cc1Cl)Cl
 C(C)CC(=O)Cl
 O=C1c2c(ncn2)N=C(N)N1
 OCCOCCl
+c1cc(ccc1N)Cl
+C(#N)NC#N
+C(CCCN)CCN

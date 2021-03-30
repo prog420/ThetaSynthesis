@@ -262,7 +262,7 @@ p.add_bond(1, 4, 3)
 
 
 # sulfamidation
-# [c](=[O])(=[O])-[S]-[N]>>[c]
+# [c]-[S](=[O])(=[O])-[N]>>[c]
 q, p = prepare()
 q.add_atom('C', hybridization=4)
 q.add_atom('S')
