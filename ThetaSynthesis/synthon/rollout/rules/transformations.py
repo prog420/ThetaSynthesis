@@ -359,4 +359,38 @@ p.add_bond(1, 2, 1)
 p.add_bond(2, 4, 2)
 
 
+# Reduction of nitrile
+#
+q, p = prepare()
+q.add_atom('N', neighbors=1)
+q.add_atom('C')
+q.add_atom('C', hybridization=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+
+p.add_atom('N')
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(1, 2, 3)
+p.add_bond(2, 3, 1)
+
+
+# SPECIAL CASE
+# Reduction of nitrile into methylamine
+q, p = prepare()
+q.add_atom('C', neighbors=1)
+q.add_atom('N', neighbors=2)
+q.add_atom('C')
+q.add_atom('C', hybridization=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+
+p.add_atom('N', _map=2)
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(2, 3, 3)
+p.add_bond(3, 4, 1)
+
+
 __all__ = ['rules']

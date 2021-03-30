@@ -13,6 +13,8 @@ for line in open('test.smiles', 'r'):
         data.append((target, reactions))
         target = None
         reactions = set()
+    elif line.startswith('#'):
+        continue
     elif target is None:
         target = smiles(line)
         target.canonicalize()

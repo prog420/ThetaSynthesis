@@ -330,4 +330,25 @@ p2.add_atom('Br')
 p2.add_bond(4, 5, 1)
 
 
+# Alkylation of alpha-carbon atom of nitrile
+q, p1, p2 = prepare()
+q.add_atom('N')
+q.add_atom('C')
+q.add_atom('C', neighbors=(3, 4))
+q.add_atom('C', hybridization=1)
+q.add_bond(1, 2, 3)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+
+p1.add_atom('N')
+p1.add_atom('C')
+p1.add_atom('C')
+p1.add_bond(1, 2, 3)
+p1.add_bond(2, 3, 1)
+
+p2.add_atom('C', _map=4)
+p2.add_atom('Cl')
+p2.add_bond(4, 5, 1)
+
+
 __all__ = ['rules']
