@@ -407,4 +407,30 @@ p2.add_bond(7, 8, 2)
 p2.add_bond(7, 10, 1)
 
 
+# heterocyclization dicarboxylic acids
+#
+q, p1, p2 = prepare()
+q.add_atom('C', rings_sizes=(5, 6))
+q.add_atom('O')
+q.add_atom(ListElement(['O', 'N']))
+q.add_atom('C', rings_sizes=(5, 6))
+q.add_atom('O')
+q.add_bond(1, 2, 2)
+q.add_bond(1, 3, 1)
+q.add_bond(3, 4, 1)
+q.add_bond(4, 5, 2)
+
+p1.add_atom('C')
+p1.add_atom('O')
+p1.add_atom('O', _map=6)
+p1.add_bond(1, 2, 2)
+p1.add_bond(1, 6, 1)
+
+p2.add_atom('C', _map=4)
+p2.add_atom('O')
+p2.add_atom('O', _map=7)
+p2.add_bond(4, 5, 2)
+p2.add_bond(4, 7, 1)
+
+
 __all__ = ['rules']

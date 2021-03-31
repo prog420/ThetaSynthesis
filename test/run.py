@@ -27,7 +27,7 @@ for line in open('test.smiles', 'r'):
 results = []
 for target, reactions in data:
     found = []
-    tree = RetroTree(target, synthon_class=RolloutSynthon, size=6000)
+    tree = RetroTree(target, synthon_class=RolloutSynthon, size=10000)
     for node in tree:
         path = tree.synthesis_path(node)
         if reactions.issuperset(path):

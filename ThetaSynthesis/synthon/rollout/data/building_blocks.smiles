@@ -36,3 +36,6 @@ c1c(OC)c(OC)cc(CC#N)c1
 C(Cl)CCCl
 CC(C)CCl
 c1cc(F)cc(F)c1N
+CCC(=O)C
+c1(cc(Cl)c(cc1)F)N
+O(CC)C(C(=COCC)C(O)=O)=O
