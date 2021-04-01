@@ -72,7 +72,7 @@ class Scroll(ScrollABC):
         Expand Tree.
         """
         for prob, new in self._expand:
-            if not self._history.isdisjoint(new):
+            if self._history.issuperset(new):
                 self._closures.add(new)
                 continue
             history = self._history.copy()
