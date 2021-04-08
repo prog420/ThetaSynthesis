@@ -18,8 +18,7 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from abc import ABC, abstractmethod
-from CGRtools import ReactionContainer
-from typing import Dict, Set, Tuple
+from typing import Dict, Set
 from .scroll import ScrollABC
 
 
@@ -40,12 +39,6 @@ class RetroTreeABC(ABC):
     def __next__(self) -> int:
         """
         Yield number of tree's node from building blocks.
-        """
-
-    @abstractmethod
-    def synthesis_path(self, node: int) -> Tuple[ReactionContainer, ...]:
-        """
-        Return a synthesis path from a picked node's molecule to target molecule.
         """
 
     def __iter__(self):

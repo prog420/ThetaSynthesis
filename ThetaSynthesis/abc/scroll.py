@@ -51,13 +51,6 @@ class ScrollABC(ABC):
     def __float__(self):
         ...
 
-    @abstractmethod
-    def __hash__(self):
-        ...
-
-    def __eq__(self, other: 'ScrollABC'):
-        return hash(self) == hash(other)
-
     @property
     @abstractmethod
     def current_synthon(self) -> 'SynthonABC':
