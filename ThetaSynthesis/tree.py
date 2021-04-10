@@ -163,7 +163,13 @@ class RetroTree(RetroTreeABC):
         return '\n'.join(svg)
 
     def find_target(self, molecule: 'MoleculeContainer'):
-        return [idx for idx, node in self._nodes.items() if node and node.current_synthon._molecule == molecule]
+        nodes = []
+        for idx, node in self._nodes.items():
+            if any(synth and molecule == synth._molecule for synth in node.new_synthons):
+                nodes.append(idx)
+            elif not node and node.current_synthon._molecule == molecule:
+                nodes.append(idx)
+        return nodes
 
     def report(self) -> str:
         return f'Tree for: {self._nodes[1]}\n' \

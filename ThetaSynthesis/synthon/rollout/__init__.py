@@ -80,7 +80,7 @@ class RolloutSynthon(SynthonABC):
     def __iter__(self):
         if self:
             return
-        molecule = self._molecule
+        molecule = self.molecule
         seen: Set[FrozenSet['MoleculeContainer']] = set()
         for prob, reactor in self.__reactors__:
             for reaction in reactor([molecule], automorphism_filter=False):
