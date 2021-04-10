@@ -18,9 +18,10 @@
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
 from CGRtools import MoleculeContainer, ReactionContainer
+from itertools import count, islice
 from math import sqrt
 from tqdm import tqdm
-from typing import Type, Optional
+from typing import Type, Optional, Tuple
 from .abc import RetroTreeABC
 from .scroll import Scroll
 from .synthon.abc import SynthonABC
@@ -49,13 +50,13 @@ class RetroTree(RetroTreeABC):
         self._tqdm = tqdm(total=iterations)
 
         synthon = synthon_class(target)
-        scroll = Scroll((), (synthon,), {synthon})
+        scroll = Scroll((), ((synthon, {synthon}),))
         scroll(finish=self._depth)
         super().__init__(scroll)
 
-    def synthesis_path(self, node):
+    def synthesis_path(self, node: int) -> Tuple[ReactionContainer, ...]:
         """
-        Prepare reaction path
+        Return a synthesis path from a picked node's molecule to target molecule.
 
         :param node: building block node
         """
@@ -83,36 +84,36 @@ class RetroTree(RetroTreeABC):
             nodes.append(node)
             node = self._pred[node]
         nodes = [self._nodes[node] for node in reversed(nodes)]
-        succ = {}
-        pred = {}
-        for before, after in zip(nodes, nodes[1:]):
-            before = before.current_synthon.molecule
-            succ[before] = after = [x.molecule for x in after.new_synthons]
-            for x in after:
-                pred[x] = before
+        # first column is target
+        # second column are first new synthons
+        columns = [[nodes[0].current_synthon.molecule],
+                   [x.molecule for x in nodes[1].new_synthons]]
+        pred = {x: 0 for x in range(1, len(columns[1]) + 1)}
+        cx = [n for n, x in enumerate(nodes[1].new_synthons, 1) if not x]
+        size = len(cx)
+        nodes = iter(nodes[2:])
+        cy = count(len(columns[1]) + 1)
+        while size:
+            layer = []
+            for s in islice(nodes, size):
+                n = cx.pop(0)
+                for x in s.new_synthons:
+                    layer.append(x)
+                    m = next(cy)
+                    if not x:
+                        cx.append(m)
+                    pred[m] = n
+            size = len(cx)
+            columns.append([x.molecule for x in layer])
 
-        start = nodes[0].current_synthon.molecule
-        queue = [(start, 0)]
-        columns = []
-        while queue:
-            current, d = queue.pop(0)
-            if len(columns) == d:
-                layer = []
-                columns.append(layer)
-            else:
-                layer = columns[d]
-            layer.append(current)
-            d += 1
-            try:
-                queue.extend(((x, d) for x in succ[current]))
-            except KeyError:  # leafs
-                pass
         # now we have columns for visualizing
         # lets start recalculate XY
         x_shift = 0.
         c_max_x = 0.
         c_max_y = 0.
         render = []
+        cx = count()
+        cy = count()
         arrow_points = {}
         for ms in columns:
             heights = []
@@ -125,7 +126,7 @@ class RetroTree(RetroTreeABC):
                 max_x = max(x for x, y in m._plane.values())
                 if max_x > c_max_x:
                     c_max_x = max_x
-                arrow_points[m] = [x_shift, max_x]
+                arrow_points[next(cx)] = [x_shift, max_x]
                 heights.append(max(y for x, y in m._plane.values()))
             x_shift = c_max_x + 5.  # between columns gap
             # calculate Y-shift
@@ -135,7 +136,7 @@ class RetroTree(RetroTreeABC):
             y_shift /= 2.
             for m, h in zip(ms, heights):
                 m._plane = {n: (x, y - y_shift) for n, (x, y) in m._plane.items()}
-                arrow_points[m].append(y_shift - h / 2.)
+                arrow_points[next(cy)].append(y_shift - h / 2.)
                 y_shift -= h + 3.
                 render.append(m.depict(embedding=True)[:3])
 
@@ -162,7 +163,13 @@ class RetroTree(RetroTreeABC):
         return '\n'.join(svg)
 
     def find_target(self, molecule: 'MoleculeContainer'):
-        return [idx for idx, node in self._nodes.items() if node and node.current_synthon._molecule == molecule]
+        nodes = []
+        for idx, node in self._nodes.items():
+            if any(synth and molecule == synth._molecule for synth in node.new_synthons):
+                nodes.append(idx)
+            elif not node and node.current_synthon._molecule == molecule:
+                nodes.append(idx)
+        return nodes
 
     def report(self) -> str:
         return f'Tree for: {self._nodes[1]}\n' \
@@ -207,9 +214,6 @@ class RetroTree(RetroTreeABC):
 
         g.layout(prog='dot')
         return g.draw(format=draw_format, prog=prog)
-
-    def __del__(self):
-        self._tqdm.close()
 
     def _add(self, node: int, scroll: Scroll, prob: float):
         """
@@ -274,6 +278,7 @@ class RetroTree(RetroTreeABC):
         while self._expanded < self._free_node:
             self._iterations += 1
             if self._iterations > self._limit:
+                self._tqdm.close()
                 raise StopIteration('Iterations limit exceeded. \n' + self.report())
             self._tqdm.update()
             depth = 0
@@ -301,6 +306,7 @@ class RetroTree(RetroTreeABC):
                         self._update_visits(node)
                         self._update_actions(node)
                         break
+        self._tqdm.close()
         raise StopIteration('Max tree size exceeded or all possible paths found' + self.report())
 
     def __repr__(self):

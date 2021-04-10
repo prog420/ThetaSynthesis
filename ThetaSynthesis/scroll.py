@@ -17,7 +17,7 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from typing import Tuple, Set
+from typing import Tuple, Set, Iterable
 from .abc import ScrollABC, IsTerminal
 from .synthon.abc import SynthonABC
 
@@ -25,32 +25,30 @@ from .synthon.abc import SynthonABC
 class Scroll(ScrollABC):
     __slots__ = ('_synthons', '_history', '_expand', '_closures', '_new_synthons')
 
-    def __init__(self, synthons: Tuple[SynthonABC, ...], new_synthons: Tuple[SynthonABC, ...],
-                 history: Set[SynthonABC], /):
-        self._synthons = (*synthons, *(x for x in new_synthons if not x))
+    def __init__(self, synthons: Tuple[Tuple[SynthonABC, Set[SynthonABC]], ...],
+                 new_synthons: Tuple[Tuple[SynthonABC, Set[SynthonABC]], ...], /):
+        self._synthons = (*synthons, *(x for x in new_synthons if not x[0]))
         self._new_synthons = new_synthons
-        self._history = history
-        self._closures = set()  # expanded synthons available in history
 
         if not self._synthons:
-            self._expand = ()
+            self._expand: Iterable[SynthonABC] = ()
         else:
-            self._expand = iter(self._synthons[0])
+            self._expand = iter(self._synthons[0][0])
 
     def __call__(self, **kwargs):
-        for synth in self._new_synthons:
+        for synth, _ in self._new_synthons:
             synth(**kwargs)  # default scroll just transfer params into all new added synthons.
 
     @property
     def current_synthon(self):
         try:
-            return self._synthons[0]
+            return self._synthons[0][0]
         except IndexError:
             raise IsTerminal
 
     @property
     def new_synthons(self):
-        return self._new_synthons
+        return tuple(x for x, _ in self._new_synthons)
 
     def __bool__(self):
         """
@@ -65,27 +63,21 @@ class Scroll(ScrollABC):
         """
         Worse value from all synthons in the scroll
         """
-        return min((float(x) for x in self._synthons), default=1.)
+        return min((float(x) for x, _ in self._synthons), default=1.)
 
     def __next__(self):
         """
         Expand Tree.
         """
+        history = self._synthons[0][1]
         for prob, new in self._expand:
-            if not self._history.isdisjoint(new):
-                self._closures.add(new)
-                continue
-            history = self._history.copy()
-            history.update(new)
-            return prob, type(self)(self._synthons[1:], new, history)
-        raise StopIteration('End of possible reactions has reached')
-
-    def __hash__(self):
-        return hash(tuple(hash(synth) for synth in self._synthons))
+            if history.isdisjoint(new):
+                return prob, type(self)(self._synthons[1:], tuple((x, {x, *history}) for x in new))
+        raise StopIteration
 
     def __repr__(self):
-        s = '\n'.join([repr(x) for x in self._synthons])
-        n = '\n'.join([repr(x) for x in self._new_synthons])
+        s = '\n'.join([repr(x) for x, _ in self._synthons])
+        n = '\n'.join([repr(x) for x, _ in self._new_synthons])
         return f'queue:\n{s}\nnew:\n{n}'
 
 

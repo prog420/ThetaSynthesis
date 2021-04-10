@@ -69,10 +69,10 @@ class RolloutSynthon(SynthonABC):
             except StopIteration:
                 self._float = -1.
                 return self._float
+            for mol in result:
+                mol.kekule()
+                mol.thiele()
             if seen.isdisjoint(result):
-                for mol in result:
-                    mol.kekule()
-                    mol.thiele()
                 queue.extend((x, depth) for x in result if str(x) not in self.__bb__)
         self._float = 1.
         return self._float
@@ -80,7 +80,7 @@ class RolloutSynthon(SynthonABC):
     def __iter__(self):
         if self:
             return
-        molecule = self._molecule
+        molecule = self.molecule
         seen: Set[FrozenSet['MoleculeContainer']] = set()
         for prob, reactor in self.__reactors__:
             for reaction in reactor([molecule], automorphism_filter=False):

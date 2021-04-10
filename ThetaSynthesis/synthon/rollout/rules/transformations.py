@@ -277,4 +277,302 @@ q.add_bond(2, 5, 1)
 p.add_atom('C')
 
 
+# Ring expansion rearrangement
+#
+q, p = prepare()
+q.add_atom('C')
+q.add_atom('N')
+q.add_atom('C', rings_sizes=6)
+q.add_atom('C')
+q.add_atom('O')
+q.add_atom('C')
+q.add_atom('C')
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+q.add_bond(4, 5, 2)
+q.add_bond(3, 6, 1)
+q.add_bond(4, 7, 1)
+
+p.add_atom('C')
+p.add_atom('N')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('O')
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(1, 2, 1)
+p.add_bond(2, 3, 2)
+p.add_bond(3, 4, 1)
+p.add_bond(4, 5, 1)
+p.add_bond(4, 6, 1)
+p.add_bond(4, 7, 1)
+
+
+# hydrolysis of bromide alkyl
+#
+q, p = prepare()
+q.add_atom('C', hybridization=1)
+q.add_atom('O', neighbors=1)
+q.add_bond(1, 2, 1)
+
+p.add_atom('C')
+p.add_atom('Br')
+p.add_bond(1, 2, 1)
+
+
+# Condensation of ketones/aldehydes and amines into imines
+#
+q, p = prepare()
+q.add_atom('N', neighbors=(1, 2))
+q.add_atom('C', neighbors=(2, 3), heteroatoms=1)
+q.add_bond(1, 2, 2)
+
+p.add_atom('C', _map=2)
+p.add_atom('O')
+p.add_bond(2, 3, 2)
+
+
+# Halogenation of alkanes
+#
+q, p = prepare()
+q.add_atom('C', hybridization=1)
+q.add_atom(ListElement(['F', 'Cl', 'Br']))
+q.add_bond(1, 2, 1)
+
+p.add_atom('C')
+
+
+# heterocyclization
+#
+q, p = prepare()
+q.add_atom('N', heteroatoms=0, hybridization=1, neighbors=(2, 3))
+q.add_atom('C', heteroatoms=2)
+q.add_atom('N', heteroatoms=0, neighbors=2)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 2)
+
+p.add_atom('N')
+p.add_atom('C')
+p.add_atom('N')
+p.add_atom('O')
+p.add_bond(1, 2, 1)
+p.add_bond(2, 4, 2)
+
+
+# Reduction of nitrile
+#
+q, p = prepare()
+q.add_atom('N', neighbors=1)
+q.add_atom('C')
+q.add_atom('C', hybridization=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+
+p.add_atom('N')
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(1, 2, 3)
+p.add_bond(2, 3, 1)
+
+
+# SPECIAL CASE
+# Reduction of nitrile into methylamine
+#
+q, p = prepare()
+q.add_atom('C', neighbors=1)
+q.add_atom('N', neighbors=2)
+q.add_atom('C')
+q.add_atom('C', hybridization=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+
+p.add_atom('N', _map=2)
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(2, 3, 3)
+p.add_bond(3, 4, 1)
+
+
+# methylation of amides
+#
+q, p = prepare()
+q.add_atom('O')
+q.add_atom('C')
+q.add_atom('N')
+q.add_atom('C', neighbors=1)
+q.add_bond(1, 2, 2)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+
+p.add_atom('O')
+p.add_atom('C')
+p.add_atom('N')
+p.add_bond(1, 2, 2)
+p.add_bond(2, 3, 1)
+
+
+# hydrocyanation of alkenes
+#
+q, p = prepare()
+q.add_atom('C', hybridization=1)
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('N')
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 3)
+
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(1, 2, 2)
+
+
+# decarbocylation (alpha atom of nitrile)
+#
+q, p = prepare()
+q.add_atom('N')
+q.add_atom('C')
+q.add_atom('C', neighbors=2)
+q.add_bond(1, 2, 3)
+q.add_bond(2, 3, 1)
+
+p.add_atom('N')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('O')
+p.add_atom('O')
+p.add_bond(1, 2, 3)
+p.add_bond(2, 3, 1)
+p.add_bond(3, 4, 1)
+p.add_bond(4, 5, 2)
+p.add_bond(4, 6, 1)
+
+
+# Bichler-Napieralski reaction
+#
+q, p = prepare()
+q.add_atom('C', rings_sizes=(6,))
+q.add_atom('C', rings_sizes=(6,))
+q.add_atom('N', rings_sizes=(6,), neighbors=2)
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('O')
+q.add_atom('O')
+q.add_atom('C')
+q.add_atom('O', neighbors=1)
+q.add_bond(1, 2, 4)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+q.add_bond(4, 5, 2)
+q.add_bond(5, 6, 1)
+q.add_bond(6, 7, 2)
+q.add_bond(6, 8, 1)
+q.add_bond(5, 9, 4)
+q.add_bond(9, 10, 1)
+q.add_bond(1, 9, 1)
+
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('N')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('O')
+p.add_atom('O')
+p.add_atom('C')
+p.add_atom('O')
+p.add_atom('O')
+p.add_bond(1, 2, 4)
+p.add_bond(2, 3, 1)
+p.add_bond(3, 4, 1)
+p.add_bond(4, 5, 2)
+p.add_bond(5, 6, 1)
+p.add_bond(6, 7, 2)
+p.add_bond(6, 8, 1)
+p.add_bond(5, 9, 1)
+p.add_bond(9, 10, 2)
+p.add_bond(9, 11, 1)
+
+
+# heterocyclization in Prins reaction
+#
+q, p = prepare()
+q.add_atom('C')
+q.add_atom('O')
+q.add_atom('C')
+q.add_atom(ListElement(['N', 'O']), neighbors=2)
+q.add_atom('C')
+q.add_atom('C')
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+q.add_bond(4, 5, 1)
+q.add_bond(5, 6, 1)
+q.add_bond(1, 6, 1)
+
+p.add_atom('C')
+p.add_atom('C', _map=5)
+p.add_bond(1, 5, 2)
+
+
+# recyclization of tetrahydropyran through an opening the ring and dehydration
+#
+q, p = prepare()
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom('C')
+q.add_atom(ListElement(['N', 'O']))
+q.add_atom('C')
+q.add_atom('C')
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+q.add_bond(3, 4, 1)
+q.add_bond(4, 5, 1)
+q.add_bond(5, 6, 1)
+q.add_bond(1, 6, 2)
+
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('A')
+p.add_atom('C')
+p.add_atom('C')
+p.add_atom('O')
+p.add_bond(1, 2, 1)
+p.add_bond(1, 7, 1)
+p.add_bond(3, 7, 1)
+p.add_bond(3, 4, 1)
+p.add_bond(4, 5, 1)
+p.add_bond(5, 6, 1)
+p.add_bond(1, 6, 1)
+
+
+# alkenes + h2o/hHal
+#
+q, p = prepare()
+q.add_atom('C', hybridization=1)
+q.add_atom('C', hybridization=1)
+q.add_atom(ListElement(['O', 'F', 'Cl', 'Br', 'I']), neighbors=1)
+q.add_bond(1, 2, 1)
+q.add_bond(2, 3, 1)
+
+p.add_atom('C')
+p.add_atom('C')
+p.add_bond(1, 2, 2)
+
+
+# methylation of dimethylamines
+#
+q, p = prepare()
+q.add_atom('C', neighbors=1)
+q.add_atom('N', neighbors=3)
+q.add_bond(1, 2, 1)
+
+p.add_atom('N', _map=2)
+
+
 __all__ = ['rules']
