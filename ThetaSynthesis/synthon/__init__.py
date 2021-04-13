@@ -20,6 +20,6 @@
 from .dummy import *
 from .greedy import *
 from .rollout import *
+from .policy import *
 
-
-__all__ = ['DummySynthon', 'GreedySynthon', 'RolloutSynthon']
+__all__ = ['DummySynthon', 'GreedySynthon', 'RolloutSynthon', 'PolicySynthon']

@@ -65,7 +65,7 @@ class RolloutSynthon(SynthonABC):
                 return self._float
             seen.add(curr)
             try:
-                result = next(x for _, r in self.__reactors__ for x in r([curr])).products
+                result = next(x for _, r in self._sorted() for x in r([curr])).products
             except StopIteration:
                 self._float = -1.
                 return self._float
@@ -82,12 +82,13 @@ class RolloutSynthon(SynthonABC):
             return
         molecule = self.molecule
         seen: Set[FrozenSet['MoleculeContainer']] = set()
-        for prob, reactor in self.__reactors__:
+        for prob, reactor in self._sorted():
             for reaction in reactor([molecule], automorphism_filter=False):
-                for mol in reaction.products:
+                prods = [m for x in reaction.products for m in x.split()]
+                for mol in prods:
                     mol.kekule()
                     mol.thiele()
-                products = frozenset(mol for mol in reaction.products)
+                products = frozenset(mol for mol in prods)
                 if products in seen:
                     continue
                 seen.add(products)
@@ -95,6 +96,9 @@ class RolloutSynthon(SynthonABC):
 
     def __bool__(self):
         return str(self._molecule) in self.__bb__
+
+    def _sorted(self):
+        return self.__reactors__
 
 
 __all__ = ['RolloutSynthon']
