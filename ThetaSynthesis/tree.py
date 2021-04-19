@@ -60,17 +60,20 @@ class RetroTree(RetroTreeABC):
 
         :param node: building block node
         """
-        nodes = []
-        while node:
-            nodes.append(node)
-            node = self._pred[node]
-        nodes = [self._nodes[node] for node in reversed(nodes)]
+        nodes = self.chain_to_node(node)
 
         tmp = [ReactionContainer([x.molecule for x in after.new_synthons], [before.current_synthon.molecule])
                for before, after in zip(nodes, nodes[1:])]
         for r in tmp:
             r.clean2d()
         return tuple(reversed(tmp))
+
+    def chain_to_node(self, node: int):
+        nodes = []
+        while node:
+            nodes.append(node)
+            node = self._pred[node]
+        return [self._nodes[node] for node in reversed(nodes)]
 
     def path_graph(self, node: int) -> str:
         """

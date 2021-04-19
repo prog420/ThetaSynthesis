@@ -22,4 +22,4 @@ from .greedy import *
 from .rollout import *
 from .policy import *
 
-__all__ = ['DummySynthon', 'GreedySynthon', 'RolloutSynthon', 'PolicySynthon']
+__all__ = ['DummySynthon', 'GreedySynthon', 'RolloutSynthon', 'PolicySynthon', 'DoubleHeadedSynthon']
