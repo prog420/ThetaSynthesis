@@ -37,7 +37,8 @@ class RolloutSynthon(SynthonABC):
             for b in bb:  # recalculate canonic forms. prevent errors when CGRtools rules set changes.
                 b.canonicalize()
             cls.__bb__ = frozenset(str(b) for b in bb)
-            cls.__reactors__ = tuple((1., Reactor(x, delete_atoms=True)) for x in rules)
+            cls.__reactors__ = tuple((1., Reactor(x, delete_atoms=True, automorphism_filter=False, one_shot=False))
+                                     for x in rules)
         return super().__new__(cls, *args, **kwargs)
 
     def __init__(self, molecule, /):
@@ -83,7 +84,7 @@ class RolloutSynthon(SynthonABC):
         molecule = self.molecule
         seen: Set[FrozenSet['MoleculeContainer']] = set()
         for prob, reactor in self.__reactors__:
-            for reaction in reactor([molecule], automorphism_filter=False):
+            for reaction in reactor([molecule]):
                 for mol in reaction.products:
                     mol.kekule()
                     mol.thiele()
