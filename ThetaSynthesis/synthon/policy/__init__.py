@@ -20,7 +20,7 @@
 from CGRtools import Reactor, SMILESRead, smiles
 from io import TextIOWrapper
 from itertools import takewhile
-from torch import hstack, Tensor
+from torch import hstack, Tensor, argmax
 from pickle import load
 from pkg_resources import resource_stream
 from StructureFingerprint import LinearFingerprint
@@ -30,7 +30,7 @@ from ..rollout import RolloutSynthon
 
 
 class PolicySynthon(RolloutSynthon):
-    __slots__ = ('_bit_string')
+    __slots__ = ('_bit_string', )
     __net__ = None
     __fragmentor__ = None
 
