@@ -22,32 +22,27 @@ from torch import hstack, Tensor
 from torch.nn import Linear, Sequential, Softmax
 from torch.nn.functional import kl_div, mse_loss
 from torch.optim import Adam
-from . import FilterNet
+from . import SorterNet
 
 
-class DoubleHeadedNet(FilterNet):
+class DoubleHeadedNet(SorterNet):
     def __init__(self):
         super().__init__()
 
-        self.policy_net = FilterNet.load_from_checkpoint(resource_stream(__name__, 'data/filter.ckpt'))
+        self.policy_net = SorterNet.load_from_checkpoint(resource_stream(__name__, 'data/sorter.ckpt'))
 
         self.body = self.policy_net.body
 
         self.policy_head = Softmax(dim=0)
 
         self.value_head = Sequential(
-            Linear(2273, 1),
+            Linear(3956, 1),
         )
 
     def forward(self, x):
-        if isinstance(x, Tensor) and x.shape[0] == 4096:
-            return self.policy_head(self.body(x))
-        elif isinstance(x, Tensor) and x.shape[0] == 4097:
-            x_policy, x_value = x[:-1], x[-1]
-        elif isinstance(x, tuple):
-            x_policy, x_value = x
-        else:
-            raise TypeError
+        assert isinstance(x, Tensor) and x.shape[0] == 4097
+
+        x_policy, x_value = x[:-1], x[-1]
 
         policy = self.policy_net(x_policy)
         stack = hstack((policy, x_value))

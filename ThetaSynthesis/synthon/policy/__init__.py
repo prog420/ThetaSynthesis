@@ -89,7 +89,8 @@ class DoubleHeadedSynthon(PolicySynthon):
         reactors = self.__reactors__
         sorted_, values = sort(self._probs, descending=True)
         yield from ((x.item(), reactors[y.item()])
-                    for x, y in takewhile(lambda x: x[0] > .1, zip(sorted_.squeeze(), values.squeeze())))
+                    for x, y in zip(sorted_.squeeze(), values.squeeze())
+                    if x > 0.)
 
 
 __all__ = ['PolicySynthon', 'DoubleHeadedSynthon']
