@@ -21,4 +21,4 @@ from .oneheaded import *
 from .double_headed import *
 
 
-__all__ = ['JustPolicyNet', 'DoubleHeadedNet']
+__all__ = ['FilterNet', 'SorterNet', 'DoubleHeadedNet']

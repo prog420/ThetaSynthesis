@@ -22,14 +22,14 @@ from torch import hstack, Tensor
 from torch.nn import Linear, Sequential, Softmax
 from torch.nn.functional import kl_div, mse_loss
 from torch.optim import Adam
-from . import JustPolicyNet
+from . import FilterNet
 
 
-class DoubleHeadedNet(JustPolicyNet):
+class DoubleHeadedNet(FilterNet):
     def __init__(self):
         super().__init__()
 
-        self.policy_net = JustPolicyNet.load_from_checkpoint(resource_stream(__name__, '../data/net.ckpt'))
+        self.policy_net = FilterNet.load_from_checkpoint(resource_stream(__name__, 'data/filter.ckpt'))
 
         self.body = self.policy_net.body
 
@@ -119,4 +119,4 @@ class DoubleHeadedNet(JustPolicyNet):
         ...
 
 
-__all__ = ['JustPolicyNet', 'DoubleHeadedNet']
+__all__ = ['DoubleHeadedNet']

@@ -17,33 +17,36 @@
 #  You should have received a copy of the GNU Lesser General Public License
 #  along with this program; if not, see <https://www.gnu.org/licenses/>.
 #
-from CGRtools import Reactor, SMILESRead, smiles
+from CGRtools import Reactor, SMILESRead
 from io import TextIOWrapper
-from itertools import takewhile
-from torch import hstack, Tensor, argmax
+from itertools import takewhile, islice
+from torch import hstack, Tensor
 from pickle import load
 from pkg_resources import resource_stream
 from StructureFingerprint import LinearFingerprint
 from torch import from_numpy, sort
-from .model import JustPolicyNet, DoubleHeadedNet
+from .model import FilterNet, SorterNet, DoubleHeadedNet
 from ..rollout import RolloutSynthon
 
 
 class PolicySynthon(RolloutSynthon):
     __slots__ = ('_bit_string', )
-    __net__ = None
+    __filter__ = None
+    __sorter__ = None
     __fragmentor__ = None
 
     def __new__(cls, molecule, *args, **kwargs):
         if cls.__bb__ is None:
-            with resource_stream(__name__, 'data/rules_reverse.pickle') as f:
+            with resource_stream(__name__, 'data/rules.pickle') as f:
                 rules = load(f)
             cls.__bb__ = frozenset(str(m) for m in SMILESRead(TextIOWrapper(resource_stream(__name__, 'data/bb.smi'))))
             cls.__reactors__ = tuple(Reactor(x, delete_atoms=True) for x in rules)
             cls.__fragmentor__ = LinearFingerprint(length=4096, min_radius=2, max_radius=4, number_bit_pairs=4)
-        if cls.__net__ is None:
-            cls.__net__ = JustPolicyNet()
-            cls.__net__.eval()
+        if cls.__filter__ is None:
+            cls.__filter__ = FilterNet().load_from_checkpoint(resource_stream(__name__, 'model/data/filter.ckpt'))
+            cls.__filter__.eval()
+            cls.__sorter__ = SorterNet().load_from_checkpoint(resource_stream(__name__, 'model/data/sorter.ckpt'))
+            cls.__sorter__.eval()
         return super().__new__(cls, molecule, *args, **kwargs)
 
     def __init__(self, molecule, /):
@@ -52,9 +55,12 @@ class PolicySynthon(RolloutSynthon):
 
     def _sorted(self):
         reactors = self.__reactors__
-        sorted_, values = sort(self.__net__.forward(self._bit_string), descending=True)
+        vec = self._bit_string
+        res = (self.__sorter__.forward(vec) + .01) * self.__filter__._predict(vec)
+        sorted_, values = sort(res.sqrt(), descending=True)
         yield from ((x.item(), reactors[y.item()])
-                    for x, y in takewhile(lambda x: x[0] > .1, zip(sorted_.squeeze(), values.squeeze())))
+                    for x, y in zip(sorted_.squeeze(), values.squeeze())
+                    if x > 0.)
 
 
 class DoubleHeadedSynthon(PolicySynthon):

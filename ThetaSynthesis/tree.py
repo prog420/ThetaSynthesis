@@ -273,7 +273,7 @@ class RetroTree(RetroTreeABC):
         visit = self._visits[node]
 
         # C_PUCT is a constant determining a level of exploration; can be from 1 to 6; 4 is more balanced value
-        u = self._c_puct * prob * sqrt(sum(self._visits[x] + 1 for x in self._succ[self._pred[node]]))
+        u = self._c_puct * prob * sqrt(sum(self._visits[x] for x in self._succ[self._pred[node]]) + 1)
 
         return (self._total_actions[node] + u) / (visit + 1)
 
