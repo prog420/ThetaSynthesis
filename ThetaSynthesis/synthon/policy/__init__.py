@@ -35,6 +35,9 @@ class PolicySynthon(RolloutSynthon):
     __sorter__ = None
     __fragmentor__ = None
 
+    __paths__ = {'filter': resource_stream(__name__, 'model/data/filter.ckpt'),
+                 'sorter': resource_stream(__name__, 'model/data/sorter.ckpt')}
+
     def __new__(cls, molecule, *args, **kwargs):
         if cls.__bb__ is None:
             with resource_stream(__name__, 'data/rules.pickle') as f:
@@ -43,9 +46,10 @@ class PolicySynthon(RolloutSynthon):
             cls.__reactors__ = tuple(Reactor(x, delete_atoms=True) for x in rules)
             cls.__fragmentor__ = LinearFingerprint(length=4096, min_radius=2, max_radius=4, number_bit_pairs=4)
         if cls.__filter__ is None:
-            cls.__filter__ = FilterNet().load_from_checkpoint(resource_stream(__name__, 'model/data/filter.ckpt'))
+            filter_, sorter_ = cls.__paths__.values()
+            cls.__filter__ = FilterNet().load_from_checkpoint(filter_)
             cls.__filter__.eval()
-            cls.__sorter__ = SorterNet().load_from_checkpoint(resource_stream(__name__, 'model/data/sorter.ckpt'))
+            cls.__sorter__ = SorterNet().load_from_checkpoint(sorter_)
             cls.__sorter__.eval()
         return super().__new__(cls, molecule, *args, **kwargs)
 
