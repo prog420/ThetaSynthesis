@@ -19,7 +19,6 @@
 #
 from CGRtools import Reactor, SMILESRead
 from io import TextIOWrapper
-from itertools import takewhile, islice
 from torch import hstack, Tensor
 from pickle import load
 from pkg_resources import resource_stream
@@ -70,16 +69,21 @@ class PolicySynthon(RolloutSynthon):
 class DoubleHeadedSynthon(PolicySynthon):
     __slots__ = ('_probs', )
     __net__ = None
+    __weigths__ = {'double': None}
 
     def __new__(cls, molecule, *args, **kwargs):
         if cls.__net__ is None:
-            cls.__net__ = DoubleHeadedNet()
+            if (path := cls.__weigths__['double']) is not None:
+                cls.__net__ = DoubleHeadedNet().load_from_checkpoint(path)
+            else:
+                cls.__net__ = DoubleHeadedNet()
             cls.__net__.eval()
         return super().__new__(cls, molecule, *args, **kwargs)
 
     def __call__(self, *args, **kwargs):
         super().__call__(*args, **kwargs)
-        self._probs, float = self.__net__.forward(hstack([self._bit_string, Tensor([self._depth])]))
+        self._bit_string = hstack([self._bit_string, Tensor([self._depth])])
+        self._probs, float = self.__net__.forward(self._bit_string)
         self._float = float.item()
 
     def __float__(self):

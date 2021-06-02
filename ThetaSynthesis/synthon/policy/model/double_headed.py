@@ -20,7 +20,7 @@
 from pkg_resources import resource_stream
 from torch import hstack, Tensor
 from torch.nn import Linear, Sequential, Softmax
-from torch.nn.functional import kl_div, mse_loss
+from torch.nn.functional import mse_loss
 from torch.optim import Adam
 from . import SorterNet
 
@@ -42,48 +42,30 @@ class DoubleHeadedNet(SorterNet):
     def forward(self, x):
         assert isinstance(x, Tensor) and x.shape[0] == 4097
 
-        x_policy, x_value = x[:-1], x[-1]
+        fp, depth = x[:-1], x[-1]
 
-        policy = self.policy_net(x_policy)
-        stack = hstack((policy, x_value))
+        policy = self.body(fp)
+        stack = hstack((policy, depth))
 
         value = self.value_head(stack)
         return policy, value
 
-    def _predict(self, x):
-        return self.forward(x)
-
     def training_step(self, batch, batch_idx):
-        loss_policy, loss_value = self._losses(batch, batch_idx)
+        loss = self._losses(batch, batch_idx)
         opt = self.optimizers()
 
-        self.manual_backward(loss_policy, opt, retain_graph=True)
-        self.manual_backward(loss_value, opt)
+        self.manual_backward(loss, opt)
 
-        self.log('loss_policy', loss_policy)
-        self.log('loss_value', loss_value)
-
-        loss = loss_policy + loss_value
         self.log('loss', loss)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        loss_policy, loss_value = self._losses(batch, batch_idx)
-
-        self.log('val_loss_policy', loss_policy)
-        self.log('val_loss_value', loss_value)
-
-        loss = loss_policy + loss_value
+        loss = self._losses(batch, batch_idx)
         self.log('val_loss', loss)
         return loss
 
     def test_step(self, batch, batch_idx):
-        loss_policy, loss_value = self._losses(batch, batch_idx)
-
-        self.log('test_loss_policy', loss_policy)
-        self.log('test_loss_value', loss_value)
-
-        loss = loss_policy + loss_value
+        loss = self._losses(batch, batch_idx)
         self.log('test_loss', loss)
         return loss
 
@@ -95,23 +77,12 @@ class DoubleHeadedNet(SorterNet):
         x, y = batch
 
         finger, depth = x[:, :-1], x[:, -1].reshape(-1, 1)
-        y_policy, y_value = y[:, :-1], y[:, -1].reshape(-1, 1)
-
-        pred_policy = self.policy_net(finger)
         stack = hstack((self.body(finger), depth))
 
         pred_value = self.value_head(stack)
+        loss_value = mse_loss(pred_value, y)
 
-        loss_policy = kl_div(pred_policy, y_policy, reduction='batchmean')
-        loss_value = mse_loss(pred_value, y_value)
-
-        return loss_policy, loss_value
-
-    def _positive_exps_learn(self):
-        ...
-
-    def _negative_exps_learn(self):
-        ...
+        return loss_value
 
 
 __all__ = ['DoubleHeadedNet']

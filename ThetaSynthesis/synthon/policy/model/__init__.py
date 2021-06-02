@@ -19,6 +19,7 @@
 #
 from .oneheaded import *
 from .double_headed import *
+from .dataloader import *
 
 
-__all__ = ['FilterNet', 'SorterNet', 'DoubleHeadedNet']
+__all__ = ['FilterNet', 'SorterNet', 'DoubleHeadedNet', 'RetroTreeDataModule']
