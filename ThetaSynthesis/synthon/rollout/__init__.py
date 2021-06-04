@@ -71,8 +71,12 @@ class RolloutSynthon(SynthonABC):
                 self._float = -1.
                 return self._float
             for mol in result:
-                mol.kekule()
-                mol.thiele()
+                try:
+                    mol.kekule()
+                except Exception:
+                    print({molecule})
+                else:
+                    mol.thiele()
             if seen.isdisjoint(result):
                 queue.extend((x, depth) for x in result if str(x) not in self.__bb__)
         self._float = 1.
@@ -87,8 +91,12 @@ class RolloutSynthon(SynthonABC):
             for reaction in reactor([molecule]):
                 prods = [m for x in reaction.products for m in x.split()]
                 for mol in prods:
-                    mol.kekule()
-                    mol.thiele()
+                    try:
+                        mol.kekule()
+                    except Exception:
+                        print(mol)
+                    else:
+                        mol.thiele()
                 products = frozenset(mol for mol in prods)
                 if products in seen:
                     continue
