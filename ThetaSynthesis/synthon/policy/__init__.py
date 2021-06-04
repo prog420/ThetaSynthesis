@@ -35,8 +35,8 @@ class PolicySynthon(RolloutSynthon):
     __sorter__ = None
     __fragmentor__ = None
 
-    __filter_path__ = resource_stream(__name__, 'model/data/filter.ckpt')
-    __sorter_path__ = resource_stream(__name__, 'model/data/sorter.ckpt')
+    __filter_path__ = None
+    __sorter_path__ = None
 
     def __new__(cls, molecule, *args, **kwargs):
         if cls.__bb__ is None:
