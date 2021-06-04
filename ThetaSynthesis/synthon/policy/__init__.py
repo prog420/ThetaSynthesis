@@ -19,7 +19,7 @@
 #
 from CGRtools import Reactor, SMILESRead
 from io import TextIOWrapper
-from itertools import takewhile, islice
+from itertools import takewhile
 from torch import hstack, Tensor
 from pickle import load
 from pkg_resources import resource_stream
@@ -35,8 +35,8 @@ class PolicySynthon(RolloutSynthon):
     __sorter__ = None
     __fragmentor__ = None
 
-    __paths__ = {'filter': resource_stream(__name__, 'model/data/filter.ckpt'),
-                 'sorter': resource_stream(__name__, 'model/data/sorter.ckpt')}
+    __filter_path__ = resource_stream(__name__, 'model/data/filter.ckpt')
+    __sorter_path__ = resource_stream(__name__, 'model/data/sorter.ckpt')
 
     def __new__(cls, molecule, *args, **kwargs):
         if cls.__bb__ is None:
@@ -46,10 +46,9 @@ class PolicySynthon(RolloutSynthon):
             cls.__reactors__ = tuple(Reactor(x, delete_atoms=True) for x in rules)
             cls.__fragmentor__ = LinearFingerprint(length=4096, min_radius=2, max_radius=4, number_bit_pairs=4)
         if cls.__filter__ is None:
-            filter_, sorter_ = cls.__paths__.values()
-            cls.__filter__ = FilterNet().load_from_checkpoint(filter_)
+            cls.__filter__ = FilterNet().load_from_checkpoint(cls.__filter_path__)
             cls.__filter__.eval()
-            cls.__sorter__ = SorterNet().load_from_checkpoint(sorter_)
+            cls.__sorter__ = SorterNet().load_from_checkpoint(cls.__sorter_path__)
             cls.__sorter__.eval()
         return super().__new__(cls, molecule, *args, **kwargs)
 
