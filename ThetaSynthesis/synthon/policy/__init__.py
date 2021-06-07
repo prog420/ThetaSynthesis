@@ -65,7 +65,7 @@ class PolicySynthon(RolloutSynthon):
         sorted_, values = sort(res.sqrt(), descending=True)
         yield from ((x.item(), reactors[y.item()])
                     for x, y in zip(sorted_.squeeze(), values.squeeze())
-                    if x > 0.)
+                    if x > .0001)
 
 
 class DoubleHeadedSynthon(PolicySynthon):
