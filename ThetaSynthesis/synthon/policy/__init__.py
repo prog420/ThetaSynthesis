@@ -61,7 +61,7 @@ class PolicySynthon(RolloutSynthon):
     def _sorted(self):
         reactors = self.__reactors__
         vec = self._bit_string
-        res = self.__sorter__.forward(vec) * self.__cleaner__
+        res = (self.__filter__.forward(vec) + .01) * (self.__sorter__.forward(vec) + .01) * self.__cleaner__
         sorted_, values = sort(res.sqrt(), descending=True)
         yield from ((x.item(), reactors[y.item()])
                     for x, y in zip(sorted_.squeeze(), values.squeeze())
