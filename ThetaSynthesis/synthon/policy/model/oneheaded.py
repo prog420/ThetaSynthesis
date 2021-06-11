@@ -19,19 +19,20 @@
 #
 from pytorch_lightning import LightningModule
 from torch.nn import ReLU, Sigmoid, Linear, Sequential, Softmax
+from torch.nn.init import kaiming_normal_, zeros_
 from torch.nn.functional import binary_cross_entropy_with_logits, cross_entropy
 from torch.optim import Adam
 from torchmetrics import MetricCollection, Accuracy
+from torchmetrics.functional import accuracy
 
 
 class FilterNet(LightningModule):
     def __init__(self):
         super().__init__()
-        l1 = Linear(4096, 2000)
-        l2 = Linear(2000, 3955)
-        act = ReLU(inplace=True)
+        l1 = Linear(4096, 8000)
+        l2 = Linear(8000, 4430)
 
-        self.metric = Accuracy()
+        act = ReLU(inplace=True)
 
         self.body = Sequential(l1, act, l2)
         self.policy_head = Sigmoid()
@@ -40,7 +41,7 @@ class FilterNet(LightningModule):
         return self.policy_head(self.body(x))
 
     def _predict(self, x):
-        boo = self.forward(x) > 0.1
+        boo = self.forward(x) > 0.5
         return boo.float()
 
     def training_step(self, batch, batch_idx):
@@ -70,18 +71,25 @@ class FilterNet(LightningModule):
         body = self.body(x)
         y_pred = self.policy_head(body)
         loss = binary_cross_entropy_with_logits(body, y)
-        ba = self.metric(y_pred, y)
+        ba = accuracy((y_pred > 0.5).float(), y.bool())
         return loss, ba
 
 
 class SorterNet(LightningModule):
-    def __init__(self):
+    def __init__(self, hid):
         super().__init__()
-        l1 = Linear(4096, 8000)
-        l2 = Linear(8000, 3955)
+
+        sizes = (4096, *hid, 4430)
+        for n, (i, j) in enumerate(zip(sizes, sizes[1:]), start=1):
+            l = Linear(i, j)
+            kaiming_normal_(l.weight)
+            zeros_(l.bias)
+            setattr(self, f'l{n}', l)
 
         self.act = ReLU(inplace=True)
         self.head = Softmax()
+
+        self.__size = len(sizes) - 1
 
         metrics = MetricCollection({
             str(n): Accuracy(top_k=n)
@@ -93,7 +101,13 @@ class SorterNet(LightningModule):
         self.valid_metrics = metrics.clone(prefix='valid_')
         self.test_metrics = metrics.clone(prefix='test_')
 
-        self.body = Sequential(l1, self.act, l2)
+        layers = []
+        for n in range(1, self.__size):
+            layers.append(getattr(self, f'l{n}'))
+            layers.append(self.act)
+        layers.append(getattr(self, f'l{self.__size}'))
+
+        self.body = Sequential(*layers)
 
     def forward(self, x):
         return self.head(self.body(x))

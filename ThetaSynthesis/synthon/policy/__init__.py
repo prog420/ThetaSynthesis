@@ -24,7 +24,7 @@ from torch import hstack, Tensor
 from pickle import load
 from pkg_resources import resource_stream
 from StructureFingerprint import LinearFingerprint
-from torch import from_numpy, sort, ones
+from torch import from_numpy, sort
 from .model import FilterNet, SorterNet, DoubleHeadedNet
 from ..rollout import RolloutSynthon
 
@@ -37,8 +37,6 @@ class PolicySynthon(RolloutSynthon):
 
     __filter_path__ = None
     __sorter_path__ = None
-    __cleaner__ = ones(3955)
-    __cleaner__[2341] = 0.
 
     def __new__(cls, molecule, *args, **kwargs):
         if cls.__bb__ is None:
@@ -50,7 +48,7 @@ class PolicySynthon(RolloutSynthon):
         if cls.__filter__ is None:
             cls.__filter__ = FilterNet().load_from_checkpoint(cls.__filter_path__)
             cls.__filter__.eval()
-            cls.__sorter__ = SorterNet().load_from_checkpoint(cls.__sorter_path__)
+            cls.__sorter__ = SorterNet((8000, )).load_from_checkpoint(cls.__sorter_path__)
             cls.__sorter__.eval()
         return super().__new__(cls, molecule, *args, **kwargs)
 
@@ -61,7 +59,7 @@ class PolicySynthon(RolloutSynthon):
     def _sorted(self):
         reactors = self.__reactors__
         vec = self._bit_string
-        res = (self.__filter__.forward(vec) + .01) * (self.__sorter__.forward(vec) + .01) * self.__cleaner__
+        res = (self.__filter__.forward(vec) + .01) * (self.__sorter__.forward(vec) + .01)
         sorted_, values = sort(res.sqrt(), descending=True)
         yield from ((x.item(), reactors[y.item()])
                     for x, y in zip(sorted_.squeeze(), values.squeeze())
